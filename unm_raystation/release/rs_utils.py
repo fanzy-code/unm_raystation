@@ -27,9 +27,6 @@ import sys
 import unicodedata
 import warnings
 
-print("Rs module path")
-print(sys.path)
-
 import pydicom as dicom
 from connect import PyScriptObject, get_current  # type: ignore
 
