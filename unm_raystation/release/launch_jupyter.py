@@ -34,7 +34,7 @@
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
 __version__ = "0.1.0"
-__license__ = ""
+__license__ = "MIT"
 
 from jupyterlab import labapp  # type: ignore
 
