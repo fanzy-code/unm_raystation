@@ -11,16 +11,16 @@ See script specific docstring on installation and usage.
 
 Use included pyproject.toml with Poetry package manager can create a 1:1 virtual environment of RayStation Python scripting environment with appropriate dependencies on a local computer.  
 
-Software versions (2/3/2023):
-RayStation 11B-SP2
-Python 3.8.7
+Software versions (2/3/2023):<br />
+RayStation 11B-SP2<br />
+Python 3.8.7<br />
 
 
-On a local computer:
+Setup instructions in a nutshell (read appropriate docs for detail):<br />
 
-Install approriate Python
-Intall Poetry
-Run 'poetry install'  
-Note: Production dependencies require a separate install within the clinical production environment.
+Install approriate Python<br />
+Intall Poetry<br />
+Run ```poetry install```  <br />
+Note: Production dependencies require a separate install within the clinical production environment.<br />
 
 
