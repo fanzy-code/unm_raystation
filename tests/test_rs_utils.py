@@ -34,6 +34,15 @@ def test_raise_error():
 
 
 def test_get_current_helper():
+    """
+    Test to see an exception is raised for getting Patient
+    """
+
+    input = "Test_Bad_Input"
+    with pytest.raises(ValueError) as exception_error:
+        get_current_helper(input)
+
+    # Will raise exception because we are not connected to a RayStation instance
     input = "Patient"
     with pytest.raises(Exception) as exception_error:
         get_current_helper(input)

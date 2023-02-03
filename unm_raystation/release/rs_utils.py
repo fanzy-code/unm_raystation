@@ -31,21 +31,22 @@ import pydicom as dicom
 from connect import PyScriptObject, get_current  # type: ignore
 
 
-def raise_error(error_message: str, exception_error: Exception) -> None:
+def raise_error(error_message: str, rs_exception_error) -> None:
     """
-    Raises exception error along with a custom error message.
+    RayStation API exception errors are not callable with custom messages.
+    This function overrides passed rs_exception_error with a generic callable exception error.
 
     Args:
         error_message (str): Custom error message
-        exception_error (Exception): Exception to be passed
+        rs_exception_error (Exception): Exception error passed
 
     Raises:
         Exception: The passed exception
     """
 
     raise Exception(
-        "{error_message}\n\nException: {exception_error}".format(
-            error_message=error_message, exception_error=exception_error
+        "{error_message}\n\nException: {rs_exception_error}".format(
+            error_message=error_message, rs_exception_error=rs_exception_error
         )
     )
 
@@ -56,18 +57,31 @@ def get_current_helper(input: str) -> PyScriptObject:
     Added error logging and messaging.
 
     Args:
-        input (str): Supported inputs are "Patient", "Case", "Plan", "BeamSet", Examination", "PatientDB", "MachineDB"
+        input (str): Supported inputs are "Patient", "Case", "Plan", "BeamSet", "Examination", "PatientDB", "MachineDB"
 
     Returns:
         PyScriptObject: The called class object
     """
 
+    supported_types = [
+        "Patient",
+        "Case",
+        "Plan",
+        "BeamSet",
+        "Examination",
+        "PatientDB",
+        "MachineDB",
+    ]
+
+    if input not in supported_types:
+        error_message = f"{input} is not in supported types: {supported_types}."
+        raise ValueError(error_message)
+
     try:
         output = get_current(input)
-    except Exception as error:
-        logging.exception(error)
+    except Exception as rs_exception_error:
         error_message = f"Unable to get {input}."
-        raise_error(error_message=error_message, exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=rs_exception_error)
     return output
 
 
