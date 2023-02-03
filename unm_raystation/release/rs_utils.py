@@ -1,9 +1,13 @@
 """ 
-    Wrapper for RayStation functions with proper error logging.   
-    Contains useful utility functions for other scripts
-    
-    To Do:
-    - Define classes for dicom RP/RD perhaps?
+Utility functions to assist with other RayStation Scripts.  Not meant to be ran on its own.
+
+Installation:
+Import, save, and validate this script in RayStation, ideally hidden from the clinical user.
+Make sure to choose the appropriate environment so imports will work.
+
+TODO:
+...
+
 """
 
 __author__ = "Michael Fan"
@@ -13,34 +17,50 @@ __license__ = "MIT"
 
 import datetime
 import glob
-
-# Import Libraries
 import logging
 import os
 import re
 import shutil
+
+# Functions
+import sys
 import unicodedata
 import warnings
 
-import pydicom as dicom
-from connect import get_current  # type: ignore
+print("Rs module path")
+print(sys.path)
 
-# Functions
+import pydicom as dicom
+from connect import PyScriptObject, get_current  # type: ignore
 
 
 # Raise exception with error message
-def raise_error(ErrorMessage, ExceptionError):
+def raise_error(error_message: str, exception_error: Exception) -> None:
+    """
+    Raises exception error along with a custom error message.
+
+    Args:
+        error_message (str): Custom error message
+        exception_error (Exception): Exception to be passed
+
+    Raises:
+        Exception: The passed exception
+    """
+
     raise Exception(
-        "{ErrorMessage}\n\nException: {ExceptionError}".format(
-            ErrorMessage=ErrorMessage, ExceptionError=ExceptionError
+        "{error_message}\n\nException: {exception_error}".format(
+            error_message=error_message, exception_error=exception_error
         )
     )
 
 
 # Wrapper function for connect.get_current with error logging
-def get_current_helper(input):
+def get_current_helper(input: str) -> PyScriptObject:
     """
     Helper function for connect.get_current function from RayStation.
+
+    Supported types are "Patient", "Case", "Plan", "BeamSet", Examination", "PatientDB", "MachineDB"
+
     Added error logging and messaging.
     See help(get_current) for allowable input classes.
     """
@@ -50,7 +70,7 @@ def get_current_helper(input):
     except Exception as error:
         logging.exception(error)
         error_message = "No {input} loaded".format(input=input)
-        raise_error(ErrorMessage=error_message, ExceptionError=error)
+        raise_error(error_message=error_message, exception_error=error)
     return output
 
 
@@ -66,7 +86,7 @@ def save_patient(patient):
         except Exception as error:
             logging.exception(error)
             error_message = "Unable to save patient."
-            raise_error(ErrorMessage=error_message, ExceptionError=error)
+            raise_error(error_message=error_message, exception_error=error)
 
 
 # Sanitize URLs and Filenames
@@ -180,7 +200,7 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
 
         except Exception as error:
             error_message = "Unable to open {file}".format(file=file)
-            raise_error(ErrorMessage=error_message, ExceptionError=error)
+            raise_error(error_message=error_message, exception_error=error)
 
         # Extract patient name, see https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html#sect_6.2.1.1
         dicom_patient_name = str(dcm.PatientName)
@@ -193,7 +213,7 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
             id = dcm.PatientID
         except Exception as error:
             error_message = "Unable to read patient ID."
-            raise_error(ErrorMessage=error_message, ExceptionError=error)
+            raise_error(error_message=error_message, exception_error=error)
 
         # Parse into dictionary
         dcm_dict = {
