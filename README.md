@@ -18,8 +18,8 @@ Python 3.8.7<br />
 
 Setup instructions in a nutshell (read appropriate docs for detail):<br />
 
-Install approriate Python<br />
-Intall Poetry<br />
+Install approriate Python version<br />
+Install Poetry<br />
 Run ```poetry install```  <br />
 Note: Production dependencies require a separate install within the clinical production environment.<br />
 
