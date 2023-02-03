@@ -1,19 +1,24 @@
 # unm_raystation
 
 ## Introduction
-Repository of in development and production ready scripts for RayStation Treatment Planning System.
+Repository of in development and production ready scripts for RayStation Treatment Planning System used at University of New Mexico Cancer Center.  
 
 ## Installation of Scripts
 
-Placeholder
+See script specific docstring on installation and usage.
 
-## Installation of development environment
+## Installation of Local Development Environment 
 
-Valid for RayStation 11B-SP2:
+Included pyproject.toml used with Poetry package manager can create a 1:1 virtual environment of RayStation Python scripting environment with appropriate dependencies on a local computer.  
 
-Install Python 3.8.7
+Software versions (2/3/2023):
+RayStation 11B-SP2
+Python 3.8.7
+
+On a local computer:
+Install approriate Python
 Intall Poetry
-Install included toml with Poetry to create a virtual environment to mimic the clinical environment.  
-Production dependencies require a separate install within the clinical production environment.
+Run 'poetry install'  
+Note: Production dependencies require a separate install within the clinical production environment.
 
 
