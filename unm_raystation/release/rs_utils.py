@@ -31,7 +31,6 @@ import pydicom as dicom
 from connect import PyScriptObject, get_current  # type: ignore
 
 
-# Raise exception with error message
 def raise_error(error_message: str, exception_error: Exception) -> None:
     """
     Raises exception error along with a custom error message.
@@ -51,22 +50,23 @@ def raise_error(error_message: str, exception_error: Exception) -> None:
     )
 
 
-# Wrapper function for connect.get_current with error logging
 def get_current_helper(input: str) -> PyScriptObject:
     """
     Helper function for connect.get_current function from RayStation.
-
-    Supported types are "Patient", "Case", "Plan", "BeamSet", Examination", "PatientDB", "MachineDB"
-
     Added error logging and messaging.
-    See help(get_current) for allowable input classes.
+
+    Args:
+        input (str): Supported inputs are "Patient", "Case", "Plan", "BeamSet", Examination", "PatientDB", "MachineDB"
+
+    Returns:
+        PyScriptObject: The called class object
     """
 
     try:
         output = get_current(input)
     except Exception as error:
         logging.exception(error)
-        error_message = "No {input} loaded".format(input=input)
+        error_message = f"Unable to get {input}."
         raise_error(error_message=error_message, exception_error=error)
     return output
 

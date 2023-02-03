@@ -21,12 +21,19 @@ import logging
 
 import pytest
 
-import unm_raystation.release.rs_utils
+from unm_raystation.release.rs_utils import *
 
 
 def test_raise_error():
     """
     Test the raise_error function raises exception correctly and the pytest environment imports packages appropriately
     """
+    error_message = "test message"
     with pytest.raises(Exception) as exception_error:
         raise_error("test message", exception_error)
+
+
+def test_get_current_helper():
+    input = "Patient"
+    with pytest.raises(Exception) as exception_error:
+        get_current_helper(input)
