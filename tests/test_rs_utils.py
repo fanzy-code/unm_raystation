@@ -25,6 +25,8 @@ import unm_raystation.release.rs_utils
 
 
 def test_raise_error():
-    error_message = "test message"
+    """
+    Test the raise_error function raises exception correctly and the pytest environment imports packages appropriately
+    """
     with pytest.raises(Exception) as exception_error:
-        raise_error(error_message, exception_error)
+        raise_error("test message", exception_error)
