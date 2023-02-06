@@ -85,25 +85,31 @@ def get_current_helper(input: str) -> PyScriptObject:
     return output
 
 
-# Wrapper function for Patient.Save() with error loggin
-def save_patient(patient):
+def save_patient(patient: PyScriptObject) -> None:
     """
     Helper function for Patient.Save() function from Raystation.
     Patient class required as input, checks if modifications are made and saves the patient if so.
+
+    Args:
+        patient (PyScriptObject): patient object from RayStation API
+
+    Returns:
+        None
+
     """
+
     if patient.ModificationInfo == None:
         try:
             patient.Save()
-        except Exception as error:
-            logging.exception(error)
+        except Exception as rs_exception_error:
             error_message = "Unable to save patient."
-            raise_error(error_message=error_message, exception_error=error)
+            raise_error(error_message=error_message, rs_exception_error=rs_exception_error)
+    return
 
 
-# Sanitize URLs and Filenames
-def slugify(value, allow_unicode=False):
+def slugify(value: str, allow_unicode: bool = False) -> str:
     """
-    Django's function for sanitizing filenames and URLs.  Gold standard for making
+    Django's function for sanitizing strings for filenames and URLs.  Gold standard for making
     input strings URL and filename friendly.
 
     Modified to keep case instead of making everything lower case.
@@ -113,7 +119,15 @@ def slugify(value, allow_unicode=False):
     dashes to single dashes. Remove characters that aren't alphanumerics,
     underscores, or hyphens. Convert to lowercase. Also strip leading and
     trailing whitespace, dashes, and underscores.
+
+    Args:
+        value (str): input string
+        allow_unicode (bool, optional): See above. Defaults to False.
+
+    Returns:
+        str: string sanitized for safe URLs and file paths
     """
+
     value = str(value)
     if allow_unicode:
         value = unicodedata.normalize("NFKC", value)
@@ -123,49 +137,81 @@ def slugify(value, allow_unicode=False):
     return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
-# File Archive function for storing
-def file_archive(src_path):
+def get_new_filename(src_path: str) -> str:
     """
-    Helper function for archiving files.
-    Takes input src_path for filepath.  Archive files in archive sub directory.
-    """
-    # Make sub-directory Archive if needed
-    base_directory = os.path.dirname(src_path)
-    sub_directory = os.path.join(base_directory, "Archive")
-    os.makedirs(sub_directory, exist_ok=True)
+    Adds a timestamp to inbetween base filename and extension
 
-    # Create new base filename for copying destination
+    Args:
+        src_path (str): path to file
+
+    Returns:
+        new_filename (str): new filename with timestamp
+    """
+    file = os.path.basename(src_path)
+    base_name, extension = os.path.splitext(file)
     now = datetime.datetime.now().strftime("_%Y-%m-%d_%H-%M-%S")
-    file_basename = os.path.basename(src_path)
-    new_file_basename = os.path.splitext(file_basename)[0] + now
-
-    # Full path to destination
-    new_path = os.path.join(sub_directory, new_file_basename + ".dcm")
-    shutil.move(src_path, new_path)
-
-    return new_path
+    new_filename = base_name + now + extension
+    return new_filename
 
 
-# File handling function for renaming, handles duplications
-def file_renamer(src_path, dst_path, delete=True):
+def file_archive(src_path: str) -> str:
     """
-    Helper function for renaming files.
-    delete=True will remove originals if destination file path already exists.
-    delete=False will pass to file_archive function for archiving
+    Helper function to archive a file.
+    Takes input src_path for filepath.  Archive file in archive sub directory.
+
+    Args:
+        src_path (str): path of file to archive
+
+    Returns:
+        new_path (str): path of archived file
     """
+
+    try:
+        # Create new filename for copying destination
+        new_filename = get_new_filename(src_path)
+
+        # Make an Archive sub-directory if needed
+        base_directory = os.path.dirname(src_path)
+        archive_sub_directory = os.path.join(base_directory, "Archive")
+        os.makedirs(archive_sub_directory, exist_ok=True)
+
+        # Full path to destination
+        new_path = os.path.join(archive_sub_directory, new_filename)
+        shutil.move(src_path, new_path)
+
+        return new_path
+
+    except:
+        raise Exception(f"Unable to archive file {src_path}")
+
+
+def file_renamer(src_path: str, dst_path: str, delete: bool = True) -> str:
+    """
+    Helper function to assist with duplications when renaming files.
+
+    delete=True will remove destination duplicate if they exist.
+    delete=False will archive destination duplicate if they exist.
+
+    Args:
+        src_path (str): path of source file
+        dst_path (str): path of destination file to be renamed to
+        delete (bool, optional): See above. Defaults to True.
+
+    Returns:
+        str: Description of what was renamed
+    """
+
     if os.path.exists(dst_path):
         if delete == True:
             os.remove(dst_path)
-            return "Duplicate found, deleted original file: {dst_path}".format(dst_path=dst_path)
+            logging.info(f"Duplicate found, deleted destination file: {dst_path}")
 
         elif delete == False:
             new_path = file_archive(src_path)
-            return "Duplicate found, archived original as {new_path}".format(new_path=new_path)
+            logging.info(f"Duplicate found, archived destination file to: {new_path}")
 
     os.rename(src_path, dst_path)
-    return "No duplicates found, renamed {src_path} to {dst_path}".format(
-        src_path=src_path, dst_path=dst_path
-    )
+    return f"Renamed {src_path} to {dst_path}"
 
 
 # Dicom RP and RP file renaming

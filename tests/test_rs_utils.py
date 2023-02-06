@@ -15,8 +15,9 @@ ScriptClient_path = ROOT_DIR + "\\RS_ScriptClient\\"
 connect_path = ROOT_DIR + "\\RS_ScriptClient\\connect\\"
 sys.path.append(ScriptClient_path)
 sys.path.append(connect_path)
-###
 
+### Library for running tests
+import datetime
 import logging
 
 import pytest
@@ -46,3 +47,14 @@ def test_get_current_helper():
     input = "Patient"
     with pytest.raises(Exception) as exception_error:
         get_current_helper(input)
+
+
+def test_slugify():
+    test_string = 'test/pl\\an-b/lah_"foo:*<>|'
+    assert slugify(test_string) == "testplan-blah_foo"
+
+
+def test_get_new_filename():
+    test_filename = "foo/bar/file.dcm"  # assume safe input
+    now = datetime.datetime.now().strftime("_%Y-%m-%d_%H-%M-%S")
+    assert get_new_filename(test_filename) == "file" + now + ".dcm"
