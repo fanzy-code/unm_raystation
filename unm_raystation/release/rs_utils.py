@@ -6,7 +6,7 @@ Import, save, and validate this script in RayStation, ideally hidden from the cl
 Make sure to choose the appropriate environment so imports will work.
 
 TODO:
-...
+finish refactoring rename_dicom_RD_RP
 
 """
 
@@ -26,6 +26,7 @@ import shutil
 import sys
 import unicodedata
 import warnings
+from typing import Dict, Tuple
 
 import pydicom as dicom
 from connect import PyScriptObject, get_current  # type: ignore
@@ -214,6 +215,134 @@ def file_renamer(src_path: str, dst_path: str, delete: bool = True) -> str:
     return f"Renamed {src_path} to {dst_path}"
 
 
+def replace_patient_name(
+    dcm: dicom.dataset.FileDataset, new_patient_name: str
+) -> Tuple[dicom.dataset.FileDataset, bool]:
+    """
+    Replaces patient name in dcm file instance
+
+    Args:
+        dcm (dicom.dataset.FileDataset): dcm file instance from pydicom.read_file function
+        new_patient_name (str): new patient name
+
+    Returns:
+        tuple(new_dcm, boolean) (dicom.dataset.FileDataset, bool): tuple containing new pydicom file instance and bool if a change was made
+    """
+    if new_patient_name:
+        try:
+            dcm.PatientName = new_patient_name
+            return (dcm, True)
+        except:
+            raise Exception(f"Unable to set {dcm.PatientName} to {new_patient_name}")
+    return (dcm, False)
+
+
+def replace_patient_id(
+    dcm: dicom.dataset.FileDataset, new_patient_id: str
+) -> Tuple[dicom.dataset.FileDataset, bool]:
+    """
+    Replaces patient id in dcm file instance
+
+    Args:
+        dcm (dicom.dataset.FileDataset): dcm file instance from pydicom.read_file function
+        new_patient_id (str): new patient id
+
+    Returns:
+        tuple(new_dcm, boolean) (dicom.dataset.FileDataset, bool): tuple containing new pydicom file instance and bool if a change was made
+    """
+    if new_patient_id:
+        try:
+            dcm.PatientID = new_patient_id
+            return (dcm, True)
+        except:
+            raise Exception(f"Unable to set {dcm.PatientID} to {new_patient_id}")
+    return (dcm, False)
+
+
+def read_dcm_patient_name(dcm_patient_name: str) -> Dict[str, str]:
+    """
+    Formats dicom patient name into a dictionary, see https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html#sect_6.2.1.1
+
+    Args:
+        dcm_patient_name (str): PatientName field of pydicom read_file instance
+
+    Returns:
+        Dict[str, str]: output dictionary with keys = ["last_name", "first_name", "middle_name", "prefix_name", "suffix_name"]
+    """
+
+    name_list = dcm_patient_name.split("^")
+    name_list_keys = ["last_name", "first_name", "middle_name", "prefix_name", "suffix_name"]
+    name_dict = dict(zip(name_list_keys, name_list))
+    return name_dict
+
+
+def extract_rd_info(dcm: dicom.dataset.FileDataset) -> Dict[str, str]:
+    """
+    Extract dicom RD info and output a dictionary with keys for ["referenced_rtplan_uid", "dose_summation_type", "referenced_beam_number"].
+    Function was written to create warnings for possibility of having multiple referenced plan sequences/fraction group/beam sequences
+
+    Args:
+        dcm (dicom.dataset.FileDataset): pydicom read_file instance
+
+    Returns:
+        Dict[str, str]: output dictionary with keys for ["referenced_rtplan_uid", "dose_summation_type", "referenced_beam_number"]
+
+    TODO
+        - Possibly shorten this code to handle getting the required information.
+    """
+
+    # Read referenced RTPlan SOPInstanceUID, send a warning if there are multiple referenced plan sequences
+    num_ref_rtp = len(dcm.ReferencedRTPlanSequence)
+    if num_ref_rtp != 1:
+        warnings.warn(
+            "RTDose {RTDose} contains {num_ref_rtp} referenced RTPlanSequences.  Reading first index only.".format(
+                RTDose=dcm.filename, num_ref_rtp=num_ref_rtp
+            )
+        )
+
+    ref_plan_uid = dcm.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
+
+    # Dose Summation Type, "PLAN" or "BEAM"
+    summation_type = dcm.DoseSummationType
+
+    # Read referenced beam number, all this code because there could be multiple referenced fraction group sequences or beam sequences
+    if summation_type == "BEAM":
+        num_ref_fgs = len(dcm.ReferencedRTPlanSequence[0].ReferencedFractionGroupSequence)
+        if num_ref_fgs != 1:
+            warnings.warn(
+                "RTDose {RTDose} contains {num_ref_fgs} referenced FractionGroupSequences.  Reading first index only.".format(
+                    RTDose=dcm.filename, num_ref_fgs=num_ref_fgs
+                )
+            )
+        num_ref_rbs = len(
+            dcm.ReferencedRTPlanSequence[0]
+            .ReferencedFractionGroupSequence[0]
+            .ReferencedBeamSequence
+        )
+        if num_ref_rbs != 1:
+            warnings.warn(
+                "RTDose {RTDose} contains {num_ref_rbs} referenced Beam Sequences.  Reading first index only.".format(
+                    RTDose=dcm.filename, num_ref_rbs=num_ref_rbs
+                )
+            )
+        ref_beam_number = (
+            dcm.ReferencedRTPlanSequence[0]
+            .ReferencedFractionGroupSequence[0]
+            .ReferencedBeamSequence[0]
+            .ReferencedBeamNumber
+        )
+    elif summation_type == "PLAN":
+        ref_beam_number = None
+
+    rd_extracted_info = {
+        "referenced_rtplan_uid": ref_plan_uid,
+        "dose_summation_type": summation_type,
+        "referenced_beam_number": ref_beam_number,
+    }
+
+    return rd_extracted_info
+
+
 # Dicom RP and RP file renaming
 def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
     """
@@ -222,10 +351,10 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
     Takes input os.path for processing, optional inputs for rewriting patient name and ID
     """
 
-    # File name formatting string
-    RD_sum_filename_format = "RD_Sum_{plan_name}"
-    RD_beam_filename_format = "RD_{beam_name}_{beam_description}"
-    RP_filename_format = "RP_{plan_name}"
+    # Filename placeholder string
+    RD_sum_filename_placeholder = "RD_Sum_{plan_name}"
+    RD_beam_filename_placeholder = "RD_{beam_name}_{beam_description}"
+    RP_filename_placeholder = "RP_{plan_name}"
 
     # Read dicom files in directory
     filename_wildcard = "*.dcm"
@@ -239,102 +368,39 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
         # Read dicom file
         try:
             dcm = dicom.read_file(file)
+        except:
+            raise Exception(f"Unable to open {file}.")
 
-            save_as = False
-            # Rewrite Patient Name if supplied
-            if new_patient_name != None:
-                dcm.PatientName = new_patient_name
-                save_as = True
+        # Rewrite Patient Name
+        dcm, change_patient_name = replace_patient_name(dcm, new_patient_name)
 
-            # Rewrite Patient ID if supplied
-            if new_patient_id != None:
-                dcm.PatientID = new_patient_id
-                save_as = True
+        # Rewrite Patient ID
+        dcm, change_patient_id = replace_patient_id(dcm, new_patient_id)
 
-            # Save new dicom if necessary
-            if save_as:
-                dcm.save_as(file)
+        # Save new dicom if necessary
+        if True in (change_patient_name, change_patient_id):
+            dcm.save_as(file)
 
-        except Exception as error:
-            error_message = "Unable to open {file}".format(file=file)
-            raise_error(error_message=error_message, exception_error=error)
-
-        # Extract patient name, see https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html#sect_6.2.1.1
+        # Read dicom patient name into a dictionary lookup
         dicom_patient_name = str(dcm.PatientName)
-        name_list = dicom_patient_name.split("^")
-        name_list_keys = ["last_name", "first_name", "middle_name", "prefix_name", "suffix_name"]
-        name_dict = dict(zip(name_list_keys, name_list))
+        name_dict = read_dcm_patient_name(dicom_patient_name)
 
-        # Extract patient ID
-        try:
-            id = dcm.PatientID
-        except Exception as error:
-            error_message = "Unable to read patient ID."
-            raise_error(error_message=error_message, exception_error=error)
-
-        # Parse into dictionary
+        # Initialize dicom dictionary
         dcm_dict = {
             "file_path": file,
-            "id": id,
+            "id": dcm.PatientID,
         }
 
         dcm_dict.update(name_dict)
 
         if dcm.Modality == "RTDOSE":
-            # Read addition RTDose variables
+            # Read additional RTDose variables
+            rd_extracted_info = extract_rd_info(dcm)
 
-            # Read referenced RTPlan SOPInstanceUID
-            num_ref_rtp = len(dcm.ReferencedRTPlanSequence[0])
-            if num_ref_rtp != 1:
-                warnings.warn(
-                    "RTDose {RTDose} contains {num_ref_rtp} referenced RTPlanSequences.  Reading first index only.".format(
-                        RTDose=file, num_ref_rtp=num_ref_rtp
-                    )
-                )
+            # Update dcm_dict with additional RTDose info
+            dcm_dict.update(rd_extracted_info)
 
-            ref_plan_uid = dcm.ReferencedRTPlanSequence[0].ReferencedSOPInstanceUID
-
-            # Dose Summation Type, "PLAN" or "BEAM"
-            summation_type = dcm.DoseSummationType
-
-            # Read referenced beam number
-            if summation_type == "BEAM":
-                num_ref_fgs = len(dcm.ReferencedRTPlanSequence[0].ReferencedFractionGroupSequence)
-                if num_ref_fgs != 1:
-                    warnings.warn(
-                        "RTDose {RTDose} contains {num_ref_fgs} referenced FractionGroupSequences.  Reading first index only.".format(
-                            RTDose=file, num_ref_fgs=num_ref_fgs
-                        )
-                    )
-                num_ref_rbs = len(
-                    dcm.ReferencedRTPlanSequence[0]
-                    .ReferencedFractionGroupSequence[0]
-                    .ReferencedBeamSequence
-                )
-                if num_ref_rbs != 1:
-                    warnings.warn(
-                        "RTDose {RTDose} contains {num_ref_rbs} referenced Beam Sequences.  Reading first index only.".format(
-                            RTDose=file, num_ref_rbs=num_ref_rbs
-                        )
-                    )
-                ref_beam_number = (
-                    dcm.ReferencedRTPlanSequence[0]
-                    .ReferencedFractionGroupSequence[0]
-                    .ReferencedBeamSequence[0]
-                    .ReferencedBeamNumber
-                )
-            elif summation_type == "PLAN":
-                ref_beam_number = None
-
-            # Update dcm_dict with additional RTDose entries
-            dcm_dict.update(
-                {
-                    "referenced_rtplan_uid": ref_plan_uid,
-                    "dose_summation_type": summation_type,
-                    "referenced_beam_number": ref_beam_number,
-                }
-            )
-
+            # Update output_dict with full extracted info
             output_dict["RD_files"][dcm.SOPInstanceUID] = dcm_dict
 
         elif dcm.Modality == "RTPLAN":
@@ -358,7 +424,7 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
             output_dict["RP_files"][dcm.SOPInstanceUID] = dcm_dict
 
             # Try renaming the file
-            new_RP_base_filename = slugify(RP_filename_format.format(plan_name=plan_name))
+            new_RP_base_filename = slugify(RP_filename_placeholder.format(plan_name=plan_name))
             new_RP_filename = new_RP_base_filename + ".dcm"
             new_RP_filepath = os.path.join(os.path.dirname(file), new_RP_filename)
             file_renamer(file, new_RP_filepath, delete=False)
@@ -372,7 +438,7 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
         # If RD is for plan sum
         if rd_dict["dose_summation_type"] == "PLAN":
             plan_name = rp_dict["plan_name"]
-            dst_base_filename = slugify(RD_sum_filename_format.format(plan_name=plan_name))
+            dst_base_filename = slugify(RD_sum_filename_placeholder.format(plan_name=plan_name))
 
         # If RD is for beam dose
         elif rd_dict["dose_summation_type"] == "BEAM":
@@ -385,7 +451,7 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
             beam_description = beam_sequence[ref_beam_number]["beam_description"]
 
             dst_base_filename = slugify(
-                RD_beam_filename_format.format(
+                RD_beam_filename_placeholder.format(
                     beam_name=beam_name, beam_description=beam_description
                 )
             )

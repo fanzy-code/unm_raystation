@@ -20,6 +20,7 @@ sys.path.append(connect_path)
 import datetime
 import logging
 
+import pydicom as dicom
 import pytest
 
 from unm_raystation.release.rs_utils import *
@@ -58,3 +59,61 @@ def test_get_new_filename():
     test_filename = "foo/bar/file.dcm"  # assume safe input
     now = datetime.datetime.now().strftime("_%Y-%m-%d_%H-%M-%S")
     assert get_new_filename(test_filename) == "file" + now + ".dcm"
+
+
+@pytest.fixture
+def sample_rp_dcm():
+    rd_path = ROOT_DIR + "\\tests\\dicom\\RP_Sample.dcm"
+    dcm = dicom.read_file(rd_path)
+    return dcm
+
+
+def test_replace_patient_x(sample_rp_dcm):
+    new_patient_name = "new^name"
+    new_dcm, change_name = replace_patient_name(sample_rp_dcm, new_patient_name)
+    assert change_name == True
+
+    new_patient_name = None
+    new_dcm, change_name = replace_patient_name(sample_rp_dcm, new_patient_name)
+    assert change_name == False
+
+    new_patient_id = "123"
+    new_dcm, change_id = replace_patient_id(sample_rp_dcm, new_patient_id)
+    assert change_id == True
+
+    new_patient_id = None
+    new_dcm, change_id = replace_patient_id(sample_rp_dcm, new_patient_id)
+    assert change_id == False
+
+
+def test_read_dcm_patient_name():
+    test_name = "Last^First"
+    assert read_dcm_patient_name(test_name) == {"last_name": "Last", "first_name": "First"}
+
+    test_name = "Last^First^Middle"
+    assert read_dcm_patient_name(test_name) == {
+        "last_name": "Last",
+        "first_name": "First",
+        "middle_name": "Middle",
+    }
+
+    test_name = "Last^First^^"
+    assert read_dcm_patient_name(test_name) == {
+        "last_name": "Last",
+        "first_name": "First",
+        "middle_name": "",
+        "prefix_name": "",
+    }
+
+    test_name = "Last^First^^^"
+    assert read_dcm_patient_name(test_name) == {
+        "last_name": "Last",
+        "first_name": "First",
+        "middle_name": "",
+        "prefix_name": "",
+        "suffix_name": "",
+    }
+
+
+def test_extract_rd_info():
+    pass
