@@ -116,4 +116,5 @@ def test_read_dcm_patient_name():
 
 
 def test_extract_rd_info():
+    # need a sample rd
     pass
