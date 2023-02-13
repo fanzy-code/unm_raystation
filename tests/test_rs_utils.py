@@ -3,7 +3,7 @@ pytest for rs_utils
 """
 
 __author__ = "Michael Fan"
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __license__ = "MIT"
 
 ### Initialize the test environment by adding paths to ScriptClient.dll and connect module

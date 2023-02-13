@@ -4,7 +4,7 @@
     this script exports all QA plans for phantom_name to base_qa_directory and performs renaming of
     RP and RD files to something more meaningful.  
 
-    Quality improvements to Do:
+    TODO:
     - Import paths from fixture instead of defining here
     - separate functions out of main and use python boiler plate = if __name__ == '__main__':
     - unit testing for functions
@@ -21,7 +21,7 @@
 
 __author__ = "Michael Fan and Jorge Zavala"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "0.2.1"
+__version__ = "1.0.0"
 __license__ = "MIT"
 
 import datetime

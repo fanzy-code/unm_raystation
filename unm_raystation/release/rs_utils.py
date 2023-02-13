@@ -6,13 +6,13 @@ Import, save, and validate this script in RayStation, ideally hidden from the cl
 Make sure to choose the appropriate environment so imports will work.
 
 TODO:
-finish refactoring rename_dicom_RD_RP
+...
 
 """
 
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "0.1.1"
+__version__ = "1.0.0"
 __license__ = "MIT"
 
 import datetime
