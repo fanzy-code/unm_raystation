@@ -40,7 +40,6 @@ sub_directory_format = "{machine_name}/{year}/{month}/{patient_name}/{qa_plan_na
 archive_directory = False
 
 
-# Example on how to read the JSON error string.
 def LogWarning(error):
     try:
         jsonWarnings = json.loads(str(error))
@@ -58,9 +57,6 @@ def LogWarning(error):
         print("Error occurred. Could not export.")
 
 
-# The error was likely due to a blocking warning, and the details should be stated
-# in the execution log.
-# This prints the successful result log in an ordered way.
 def LogCompleted(result):
     try:
         jsonWarnings = json.loads(str(result))
@@ -79,6 +75,43 @@ def LogCompleted(result):
         print("Error reading completion messages.")
 
 
+# Clean the working directory of .dcm files
+def clean_working_directory_dcm(path) -> None:
+    filename_wildcard = "*.dcm"
+    old_filename_list = glob.glob(os.path.join(path, filename_wildcard))
+    for old_file in old_filename_list:
+        if archive_directory == False:
+            os.remove(old_file)
+        elif archive_directory == True:
+            new_path = rs_utils.file_archive(old_file)
+    return
+
+
+# Create subfolder directory
+def create_sub_directory(verification_plan, patient, base_qa_directory):
+    machine_name = verification_plan.BeamSet.MachineReference.MachineName
+    year = str(datetime.datetime.now().year)
+    month = "{:02d}_{month}".format(
+        datetime.datetime.now().month, month=datetime.datetime.now().strftime("%B")
+    )
+    patient_name = rs_utils.slugify(
+        "{name}_{patient_id}".format(name=patient.Name, patient_id=patient.PatientID)
+    )
+    qa_plan_name = rs_utils.slugify(
+        "{qa_plan_name}".format(qa_plan_name=verification_plan.BeamSet.DicomPlanLabel)
+    )
+    sub_directory = sub_directory_format.format(
+        machine_name=machine_name,
+        year=year,
+        month=month,
+        patient_name=patient_name,
+        qa_plan_name=qa_plan_name,
+    )
+    path = os.path.join(base_qa_directory, sub_directory)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 # Load patient, case, beamset data
 patient = rs_utils.get_current_helper("Patient")
 case = rs_utils.get_current_helper("Case")
@@ -91,50 +124,24 @@ rs_utils.save_patient(patient)
 # Get the verification plans. This gets all verification plans on a plan.
 verification_plans = plan.VerificationPlans
 
-# Find relevant verification plans (ArcCheck) for current selected beam set
+# Find relevant verification plans for current selected beam set
 relevant_verification_plans = []
 for verification_plan in verification_plans:
-    if (
-        verification_plan.OfRadiationSet.DicomPlanLabel == beam_set.DicomPlanLabel
+    if (verification_plan.OfRadiationSet.DicomPlanLabel == beam_set.DicomPlanLabel) and (
+        verification_plan.PhantomStudy.PhantomName == phantom_name
     ):  # Find verification plans which match current (active) beam set
-        if verification_plan.PhantomStudy.PhantomName == phantom_name:
-            relevant_verification_plans.append(verification_plan)
+        relevant_verification_plans.append(verification_plan)
 
 if len(relevant_verification_plans) == 0:
     raise Exception("Found no verification plan to export.")
 
 for verification_plan in relevant_verification_plans:
     try:
-        # Create desired subfolder directory
-        machine_name = verification_plan.BeamSet.MachineReference.MachineName
-        year = str(datetime.datetime.now().year)
-        month = "{:02d}_{month}".format(
-            datetime.datetime.now().month, month=datetime.datetime.now().strftime("%B")
-        )
-        patient_name = rs_utils.slugify(
-            "{name}_{patient_id}".format(name=patient.Name, patient_id=patient.PatientID)
-        )
-        qa_plan_name = rs_utils.slugify(
-            "{qa_plan_name}".format(qa_plan_name=verification_plan.BeamSet.DicomPlanLabel)
-        )
-        sub_directory = sub_directory_format.format(
-            machine_name=machine_name,
-            year=year,
-            month=month,
-            patient_name=patient_name,
-            qa_plan_name=qa_plan_name,
-        )
-        path = os.path.join(base_qa_directory, sub_directory)
-        os.makedirs(path, exist_ok=True)
+        # Create subfolder directory
+        path = create_sub_directory(verification_plan, patient, base_qa_directory)
 
         # Clean the working directory of .dcm files
-        filename_wildcard = "*.dcm"
-        old_filename_list = glob.glob(os.path.join(path, filename_wildcard))
-        for old_file in old_filename_list:
-            if archive_directory == False:
-                os.remove(old_file)
-            elif archive_directory == True:
-                new_path = rs_utils.file_archive(old_file)
+        clean_working_directory_dcm(path)
 
         # Export the verification plan
         result = verification_plan.ScriptableQADicomExport(
@@ -153,13 +160,7 @@ for verification_plan in relevant_verification_plans:
             os_path=path, new_patient_name=patient.Name, new_patient_id=patient.PatientID
         )
 
-        # It is important to read the result event if the script was successful.
-        # This gives the user a chance to see possible warnings that were ignored, if for
-        # example the IgnorePreConditionWarnings was set to True by mistake. The result
-        # also contains other notifications the user should read.
         LogCompleted(result)
     except SystemError as error:
         # The script failed due to warnings or errors.
         LogWarning(error)
-
-        print("\nTry to export again with IgnorePreConditionWarnings=True\n")

@@ -62,43 +62,55 @@ def test_get_new_filename():
 
 
 @pytest.fixture
-def sample_rp_dcm():
+def sample_rp_dcm_namer():
     rd_path = ROOT_DIR + "\\tests\\dicom\\RP_Sample.dcm"
     dcm = dicom.read_file(rd_path)
-    return dcm
+    dcm_namer = DicomNamer(dcm)
+    return dcm_namer
 
 
-def test_replace_patient_x(sample_rp_dcm):
+@pytest.fixture
+def sample_rd_beam_dcm_namer():
+    rd_path = ROOT_DIR + "\\tests\\dicom\\RD_Beam_Sample.dcm"
+    dcm = dicom.read_file(rd_path)
+    dcm_namer = DicomNamer(dcm)
+    return dcm_namer
+
+
+@pytest.fixture
+def sample_rd_sum_dcm_namer():
+    rd_path = ROOT_DIR + "\\tests\\dicom\\RD_Sum_Sample.dcm"
+    dcm = dicom.read_file(rd_path)
+    dcm_namer = DicomNamer(dcm)
+    return dcm_namer
+
+
+def test_replace_patient_x(sample_rp_dcm_namer):
     new_patient_name = "new^name"
-    new_dcm, change_name = replace_patient_name(sample_rp_dcm, new_patient_name)
-    assert change_name == True
-
-    new_patient_name = None
-    new_dcm, change_name = replace_patient_name(sample_rp_dcm, new_patient_name)
-    assert change_name == False
-
     new_patient_id = "123"
-    new_dcm, change_id = replace_patient_id(sample_rp_dcm, new_patient_id)
-    assert change_id == True
 
-    new_patient_id = None
-    new_dcm, change_id = replace_patient_id(sample_rp_dcm, new_patient_id)
-    assert change_id == False
+    change = sample_rp_dcm_namer.replace_patient_attributes(new_patient_name, new_patient_id)
+    assert change == True
+    assert sample_rp_dcm_namer.dcm.PatientName == new_patient_name
+    assert sample_rp_dcm_namer.dcm.PatientID == new_patient_id
 
 
-def test_read_dcm_patient_name():
+def test_read_dcm_patient_name(sample_rp_dcm_namer):
     test_name = "Last^First"
-    assert read_dcm_patient_name(test_name) == {"last_name": "Last", "first_name": "First"}
+    assert sample_rp_dcm_namer.read_dcm_patient_name(test_name) == {
+        "last_name": "Last",
+        "first_name": "First",
+    }
 
     test_name = "Last^First^Middle"
-    assert read_dcm_patient_name(test_name) == {
+    assert sample_rp_dcm_namer.read_dcm_patient_name(test_name) == {
         "last_name": "Last",
         "first_name": "First",
         "middle_name": "Middle",
     }
 
     test_name = "Last^First^^"
-    assert read_dcm_patient_name(test_name) == {
+    assert sample_rp_dcm_namer.read_dcm_patient_name(test_name) == {
         "last_name": "Last",
         "first_name": "First",
         "middle_name": "",
@@ -106,7 +118,7 @@ def test_read_dcm_patient_name():
     }
 
     test_name = "Last^First^^^"
-    assert read_dcm_patient_name(test_name) == {
+    assert sample_rp_dcm_namer.read_dcm_patient_name(test_name) == {
         "last_name": "Last",
         "first_name": "First",
         "middle_name": "",
@@ -114,7 +126,59 @@ def test_read_dcm_patient_name():
         "suffix_name": "",
     }
 
+    test_name = "Last"
+    assert sample_rp_dcm_namer.read_dcm_patient_name(test_name) == {
+        "last_name": "Last",
+    }
 
-def test_extract_rd_info():
-    # need a sample rd
-    pass
+
+def test_set_dcm_patient_name(sample_rp_dcm_namer):
+    # Set a more complicated instance of patient name
+    sample_rp_dcm_namer.dcm.PatientName = "Last^First^Middle^^"
+    dcm_PatientName = str(sample_rp_dcm_namer.dcm.PatientName)
+    name_dict = sample_rp_dcm_namer.read_dcm_patient_name(dcm_PatientName)
+    sample_rp_dcm_namer.set_dcm_patient_name()
+    for key, value in name_dict.items():
+        assert sample_rp_dcm_namer.__getattribute__(key) == value
+
+
+def test_read_rd_properties(sample_rd_beam_dcm_namer):
+    rd_info_dict = sample_rd_beam_dcm_namer.read_rd_properties()
+    assert rd_info_dict == {
+        "referenced_rtplan_uid": "1.2.752.243.1.1.20230130114529116.5000.62080",
+        "dose_summation_type": "BEAM",
+        "referenced_beam_number": "1",
+    }
+
+
+def test_read_rd_properties(sample_rd_sum_dcm_namer):
+    rd_info_dict = sample_rd_sum_dcm_namer.read_rd_properties()
+    assert rd_info_dict == {
+        "referenced_rtplan_uid": "1.2.752.243.1.1.20230130114529116.5000.62080",
+        "dose_summation_type": "PLAN",
+        "referenced_beam_number": None,
+    }
+
+
+def test_set_rd_properties(sample_rd_beam_dcm_namer):
+    # Alternatively we can edit the sample_rd_beam_dcm_namer with some new data and make sure the set_rd_rp_properties is working properly
+    rd_info_dict = sample_rd_beam_dcm_namer.read_rd_properties()
+
+    assert rd_info_dict == {
+        "referenced_rtplan_uid": "1.2.752.243.1.1.20230130114529116.5000.62080",
+        "dose_summation_type": "BEAM",
+        "referenced_beam_number": "1",
+    }
+
+    sample_rd_beam_dcm_namer.set_rd_rp_properties()
+    for key, value in rd_info_dict.items():
+        assert sample_rd_beam_dcm_namer.__getattribute__(key) == value
+
+
+def test_set_rp_properties(sample_rp_dcm_namer):
+    # Alternatively we can edit the sample_rp_dcm_namer with some new data and make sure the set_rd_rp_properties is working properly
+    rp_info_dict = sample_rp_dcm_namer.read_rp_properties()
+
+    sample_rp_dcm_namer.set_rd_rp_properties()
+    for key, value in rp_info_dict.items():
+        assert sample_rp_dcm_namer.__getattribute__(key) == value
