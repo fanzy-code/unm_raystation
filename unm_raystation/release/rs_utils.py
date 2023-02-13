@@ -445,49 +445,43 @@ class DicomNamer:
                 return "no RP plan found"
 
             if len(relevant_RP_list) > 1:
-                logging.warn(
+                logging.warning(
                     "More than one referenced RP found, reading beam names from first one"
                 )
 
             RP = relevant_RP_list[0]
             try:
                 RP_beam_sequence = RP.beam_sequence
-                self.beam_name = [
-                    beam["beam_name"]
-                    for beam in RP_beam_sequence
-                    if beam["beam_number"] == self.referenced_beam_number
-                ][0]
-                self.beam_description = [
-                    beam["beam_description"]
-                    for beam in RP_beam_sequence
-                    if beam["beam_number"] == self.referenced_beam_number
-                ][0]
+                logging.info(RP_beam_sequence)
+                self.beam_name = RP_beam_sequence[self.referenced_beam_number]["beam_name"]
+                self.beam_description = RP_beam_sequence[self.referenced_beam_number][
+                    "beam_description"
+                ]
                 return "success"
             except:
-                logging.warn(
+                logging.warning(
                     f"Unable to set beam_name and beam_description for {self.file_path} using {RP.file_path}"
                 )
                 return "fail"
         return "pass"
 
-    def save_as_new_name(self) -> str:
+    def get_new_name(self) -> str:
         if self.modality == "RTPLAN":
-            new_filename = self.RP_filename_placeholder.format(plan_name=self.plan_name) + ".dcm"
+            new_filename = self.RP_filename_placeholder.format(plan_name=self.plan_name)
 
         if self.modality == "RTDOSE" and self.dose_summation_type == "PLAN":
-            new_filename = (
-                self.RD_sum_filename_placeholder.format(plan_name=self.plan_name) + ".dcm"
-            )
+            new_filename = self.RD_sum_filename_placeholder.format(plan_name=self.plan_name)
 
         if self.modality == "RTDOSE" and self.dose_summation_type == "BEAM":
-            new_filename = (
-                self.RD_beam_filename_placeholder.format(
-                    beam_name=self.beam_name, beam_description=self.beam_description
-                )
-                + ".dcm"
+            new_filename = self.RD_beam_filename_placeholder.format(
+                beam_name=self.beam_name, beam_description=self.beam_description
             )
 
-        new_filename = slugify(new_filename)
+        new_filename = slugify(new_filename) + ".dcm"
+        return new_filename
+
+    def save_as_new_name(self) -> str:
+        new_filename = self.get_new_name()
         new_filepath = os.path.join(self.root_dir, new_filename)
         file_renamer(self.file_path, new_filepath, delete=False)
         return new_filepath

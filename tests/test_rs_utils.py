@@ -182,3 +182,21 @@ def test_set_rp_properties(sample_rp_dcm_namer):
     sample_rp_dcm_namer.set_rd_rp_properties()
     for key, value in rp_info_dict.items():
         assert sample_rp_dcm_namer.__getattribute__(key) == value
+
+
+def test_set_beam_properties_and_new_name(
+    sample_rd_beam_dcm_namer, sample_rd_sum_dcm_namer, sample_rp_dcm_namer
+):
+    dicomnamer_list = [sample_rd_beam_dcm_namer, sample_rd_sum_dcm_namer, sample_rp_dcm_namer]
+    results_set_beam_properties = [
+        dcm.set_beam_properties(dicomnamer_list) for dcm in dicomnamer_list
+    ]
+    assert results_set_beam_properties == ["success", "pass", "pass"]
+    assert sample_rd_beam_dcm_namer.referenced_beam_number == "1"
+    assert sample_rd_beam_dcm_namer.beam_name == "A07"
+    assert sample_rd_beam_dcm_namer.beam_description == "G181 C0 R Pelvis Bst"
+    assert sample_rd_beam_dcm_namer.get_new_name() == "RD_A07_G181-C0-R-Pelvis-Bst.dcm"
+
+
+def test_get_new_name(sample_rp_dcm_namer):
+    assert sample_rp_dcm_namer.get_new_name() == "RP_R-Pelvis-Bst.dcm"
