@@ -436,7 +436,7 @@ class DicomNamer:
             for key, value in rp_dict_info.items():
                 self.__setattr__(key, value)
 
-    def set_beam_properties(self, DicomNamer_list) -> None:
+    def set_beam_properties(self, DicomNamer_list: list) -> str:
         if self.modality == "RTDOSE" and self.dose_summation_type == "BEAM":
             relevant_RP_list = [
                 dcm for dcm in DicomNamer_list if dcm.SOPInstanceUID == self.referenced_rtplan_uid
