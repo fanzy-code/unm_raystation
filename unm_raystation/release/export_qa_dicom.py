@@ -6,8 +6,7 @@
 
     TODO:
     - Import paths from fixture instead of defining here
-    - separate functions out of main and use python boiler plate = if __name__ == '__main__':
-    - unit testing for functions
+    - separate functions out of main and use python boiler plate
 
     Features To Do:
     - Remove hard coding of phantom_name by:
