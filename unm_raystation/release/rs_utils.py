@@ -219,7 +219,7 @@ def file_renamer(src_path: str, dst_path: str, delete: bool = True) -> str:
 
 class DicomNamer:
     """
-    Class to extract data from Dicom RP and RD files and use it to rename things
+    Class to extract data from Dicom RP and RD files for renaming purpose
     """
 
     # Filename placeholder strings
@@ -488,7 +488,7 @@ class DicomNamer:
 
 
 # Dicom RP and RP file renaming
-def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
+def rename_dicom_RD_RP(os_path: str, new_patient_name: str = "", new_patient_id: str = "") -> None:
     """
     Helper function for renaming exported dicom RD and RP from RayStation.
     Default filenames used involve UID, this function renames them to beam name & description.
@@ -512,3 +512,5 @@ def rename_dicom_RD_RP(os_path, new_patient_name=None, new_patient_id=None):
 
     # Resave all dicom files with new names
     results_save_as_new = [dcm.save_as_new_name() for dcm in dicomnamer_list]
+
+    return
