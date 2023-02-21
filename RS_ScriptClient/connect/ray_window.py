@@ -1,10 +1,12 @@
-from System.Windows.Markup import XamlReader
-from System.IO import StringReader
-from System.Xml import XmlReader
-from System.Windows import LogicalTreeHelper
-from xml.etree import ElementTree
-from io import StringIO
+# mypy: ignore-errors
 import re
+from io import StringIO
+from xml.etree import ElementTree
+
+from System.IO import StringReader
+from System.Windows import LogicalTreeHelper
+from System.Windows.Markup import XamlReader
+from System.Xml import XmlReader
 
 
 class RayWindow():

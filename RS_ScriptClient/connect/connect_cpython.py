@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import ctypes
 
 ctypes.windll.ole32.CoInitialize(
