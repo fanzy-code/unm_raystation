@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 import platform
 
 if platform.python_implementation() == "IronPython":
