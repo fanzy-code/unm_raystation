@@ -500,11 +500,11 @@ def rename_dicom_RD_RP(os_path: str, new_patient_name: str = "", new_patient_id:
     filename_wildcard = "*.dcm"
     filename_list = glob.glob(os.path.join(os_path, filename_wildcard))
 
-    read_file_typed: Callable[[str], dicom.dataset.FileDataset] = dicom.read_file
+    dicom_read_file_typed: Callable[[str], dicom.dataset.FileDataset] = dicom.read_file
 
     # Read files, pass into DicomNamer class
     dicomnamer_list = [
-        DicomNamer(read_file_typed(file), new_patient_name, new_patient_id)
+        DicomNamer(dicom_read_file_typed(file), new_patient_name, new_patient_id)
         for file in filename_list
     ]
 
