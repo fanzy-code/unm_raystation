@@ -1,6 +1,3 @@
-# mypy: ignore-errors
-# pyright: reportUnusedImport=false, reportMissingImports=false, reportUndefinedVariable=false
-
 import ctypes
 
 ctypes.windll.ole32.CoInitialize(

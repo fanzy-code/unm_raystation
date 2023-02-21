@@ -1,8 +1,4 @@
-﻿# mypy: ignore-errors
-# pyright: reportUnusedImport=false, reportMissingImports=false, reportUndefinedVariable=false
-
-
-import os
+﻿import os
 import sys
 
 import clr
