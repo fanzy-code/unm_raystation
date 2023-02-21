@@ -28,7 +28,7 @@ import sys
 import unicodedata
 import warnings
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Callable, Dict, Tuple
 
 import pydicom as dicom
 from connect import PyScriptObject, get_current  # type: ignore
@@ -500,9 +500,11 @@ def rename_dicom_RD_RP(os_path: str, new_patient_name: str = "", new_patient_id:
     filename_wildcard = "*.dcm"
     filename_list = glob.glob(os.path.join(os_path, filename_wildcard))
 
+    read_file_typed: Callable[[str], dicom.dataset.FileDataset] = dicom.read_file
+
     # Read files, pass into DicomNamer class
     dicomnamer_list = [
-        DicomNamer(dicom.read_file(file), new_patient_name, new_patient_id)
+        DicomNamer(read_file_typed(file), new_patient_name, new_patient_id)
         for file in filename_list
     ]
 
