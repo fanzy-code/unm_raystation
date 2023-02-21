@@ -219,7 +219,7 @@ def file_renamer(src_path: str, dst_path: str, delete: bool = True) -> str:
 
 class DicomNamer:
     """
-    Class to extract data from Dicom RP and RD files for renaming purpose
+    Class to extract data from Dicom RP and RD files for renaming purposes
     """
 
     # Filename placeholder strings
@@ -227,17 +227,18 @@ class DicomNamer:
     RD_beam_filename_placeholder = "RD_{beam_name}_{beam_description}"
     RP_filename_placeholder = "RP_{plan_name}"
 
-    def __init__(
-        self, dcm: dicom.dataset.FileDataset, new_patient_name: str = "", new_patient_id: str = ""
-    ):
+    def __init__(self, dcm, new_patient_name: str = "", new_patient_id: str = ""):
+        if not isinstance(dcm, dicom.dataset.FileDataset):
+            raise TypeError("dcm must be an instance of pydicom.dataset.FileDataset")
+
         self.dcm = dcm
         self.last_name: str = ""
         self.first_name: str = ""
         self.middle_name: str = ""
         self.prefix_name: str = ""
         self.suffix_name: str = ""
-        self.file_path: str = str(Path(dcm.filename).resolve())
-        self.root_dir: str = str(Path(dcm.filename).resolve().parent)
+        self.file_path: str = str(Path(str(dcm.filename)).resolve())
+        self.root_dir: str = str(Path(str(dcm.filename)).resolve().parent)
         self.modality: str = dcm.Modality
         self.plan_name: str = ""
         self.SOPInstanceUID: str = dcm.SOPInstanceUID
@@ -255,7 +256,7 @@ class DicomNamer:
         self.set_rd_rp_properties()
 
         if self._need_save:
-            self.dcm.save_as(self.dcm.filename)
+            self.dcm.save_as(str(dcm.filename))
 
     def replace_patient_name(self, new_patient_name: str) -> bool:
         """
@@ -335,7 +336,7 @@ class DicomNamer:
             self.__setattr__(key, value)
         return
 
-    def read_rd_properties(self) -> None:
+    def read_rd_properties(self) -> dict:
         """
         Extract dicom RD info and output a dictionary with keys for ["referenced_rtplan_uid", "dose_summation_type", "referenced_beam_number"].
         Function was written to create warnings for possibility of having multiple referenced plan sequences/fraction group/beam sequences
@@ -353,7 +354,7 @@ class DicomNamer:
         num_ref_rtp = len(dcm.ReferencedRTPlanSequence)
         if num_ref_rtp != 1:
             warnings.warn(
-                "RTDose {RTDose} contains {num_ref_rtp} referenced RTPlanSequences.  Reading first index only.".format(
+                "RTDose {RTDose!r} contains {num_ref_rtp!r} referenced RTPlanSequences.  Reading first index only.".format(
                     RTDose=dcm.filename, num_ref_rtp=num_ref_rtp
                 )
             )
@@ -368,7 +369,7 @@ class DicomNamer:
             num_ref_fgs = len(dcm.ReferencedRTPlanSequence[0].ReferencedFractionGroupSequence)
             if num_ref_fgs != 1:
                 warnings.warn(
-                    "RTDose {RTDose} contains {num_ref_fgs} referenced FractionGroupSequences.  Reading first index only.".format(
+                    "RTDose {RTDose!r} contains {num_ref_fgs!r} referenced FractionGroupSequences.  Reading first index only.".format(
                         RTDose=dcm.filename, num_ref_fgs=num_ref_fgs
                     )
                 )
@@ -379,7 +380,7 @@ class DicomNamer:
             )
             if num_ref_rbs != 1:
                 warnings.warn(
-                    "RTDose {RTDose} contains {num_ref_rbs} referenced Beam Sequences.  Reading first index only.".format(
+                    "RTDose {RTDose!r} contains {num_ref_rbs!r} referenced Beam Sequences.  Reading first index only.".format(
                         RTDose=dcm.filename, num_ref_rbs=num_ref_rbs
                     )
                 )
@@ -400,7 +401,7 @@ class DicomNamer:
 
         return rd_info_dict
 
-    def read_rp_properties(self) -> None:
+    def read_rp_properties(self) -> dict:
         """
         Extract dicom RP info and output a dictionary with keys for ["plan_name", "beam_sequence"].
 
