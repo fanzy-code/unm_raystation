@@ -1,4 +1,7 @@
 # mypy: ignore-errors
+# pyright: reportUnusedImport=false, reportMissingImports=false, reportUndefinedVariable=false
+
+
 import re
 from io import StringIO
 from xml.etree import ElementTree
