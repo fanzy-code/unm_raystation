@@ -4,6 +4,47 @@ Script to export plans to multiple locations
 
 import json
 from dataclasses import dataclass, field
+from typing import Optional
+
+# Can I just query this??
+production_dicomscp_list = [
+    "Velocity",
+    "MOSAIQ",
+    "Tomotherapy",
+    "PACS",
+    "LifeImage",
+    "SunCheck",
+    "Eclipse",
+]
+
+
+@dataclass
+class DicomSCP:
+    # Needs either Title or Node+Port+CalledAE+CallingAE
+    Title: Optional[str] = None
+
+    Node: Optional[str] = None
+    Port: Optional[str] = None
+    CalledAE: Optional[str] = None
+    CallingAE: Optional[str] = None
+
+    def get_dicomscp_dict(self) -> dict:
+        if self.Title:
+            return {"Title": self.Title}
+        else:
+            return {
+                "Node": self.Node,
+                "Port": self.Port,
+                "CalledAE": self.CalledAE,
+                "CallingAE": self.CallingAE,
+            }
+
+    def __post_init__(self):
+        if self.Title is None and not all((self.Node, self.Port, self.CalledAE, self.CallingAE)):
+            raise ValueError(
+                "Either Title or all of (Node + Port + CalledAE + CallingAE) have to be defined"
+            )
+        return
 
 
 @dataclass
@@ -17,14 +58,24 @@ class AnonymizationSettings:
     RetainUIDS: bool = False
     RetainSafePrivateAttributes: bool = False
 
-    def get_anonymization_settings(self) -> dict:
+    def get_anonymization_settings_dict(self) -> dict:
         return self.__dict__
 
 
 @dataclass
 class DCMExportDestination:
     name: str
-    anonymization_settings: AnonymizationSettings
+    AnonymizationSettings: AnonymizationSettings
+
+    # Choose one but not both
+    Connection: Optional[DicomSCP]
+    ExportFolderPath: Optional[str]
+
+    def __post_init__(self):
+        if all((self.Connection, self.ExportFolderPath)):
+            raise ValueError(
+                "Both Connection and ExportFolderPath cannot be defined at the same time"
+            )
 
     def handle_log_completion(self, result):
         return
