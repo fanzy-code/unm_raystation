@@ -29,21 +29,19 @@ class DicomSCP:
     CallingAE: Optional[str] = None
 
     def get_dicomscp_dict(self) -> dict:
-        if self.Title:
-            return {"Title": self.Title}
-        else:
-            return {
-                "Node": self.Node,
-                "Port": self.Port,
-                "CalledAE": self.CalledAE,
-                "CallingAE": self.CallingAE,
-            }
+        return {k: v for k, v in vars(self).items() if v is not None}
 
     def __post_init__(self):
-        if self.Title is None and not all((self.Node, self.Port, self.CalledAE, self.CallingAE)):
+        if not self.Title and not all((self.Node, self.Port, self.CalledAE, self.CallingAE)):
             raise ValueError(
-                "Either Title or all of (Node + Port + CalledAE + CallingAE) have to be defined"
+                "Either Title or all of (Node, Port, CalledAE, CallingAE) have to be defined."
             )
+
+        if self.Title and any((self.Node, self.Port, self.CalledAE, self.CallingAE)):
+            raise ValueError(
+                "Both Title and (Node, Port, CalledAE, CallingAE) are defined, only one can be."
+            )
+
         return
 
 
@@ -59,7 +57,7 @@ class AnonymizationSettings:
     RetainSafePrivateAttributes: bool = False
 
     def get_anonymization_settings_dict(self) -> dict:
-        return self.__dict__
+        return vars(self)
 
 
 @dataclass
@@ -68,14 +66,15 @@ class DCMExportDestination:
     AnonymizationSettings: AnonymizationSettings
 
     # Choose one but not both
-    Connection: Optional[DicomSCP]
-    ExportFolderPath: Optional[str]
+    Connection: Optional[DicomSCP] = None
+    ExportFolderPath: Optional[str] = None
 
     def __post_init__(self):
-        if all((self.Connection, self.ExportFolderPath)):
+        if not ((self.Connection is None) ^ (self.ExportFolderPath is None)):
             raise ValueError(
-                "Both Connection and ExportFolderPath cannot be defined at the same time"
+                "Either Connection or ExportFolderPath has to be defined, but not both"
             )
+        return
 
     def handle_log_completion(self, result):
         return
@@ -92,7 +91,12 @@ class DCMExportDestination:
 
 def main():
     test_anon_settings = AnonymizationSettings()
-    test_dicom_destination = DCMExportDestination("test_destination", test_anon_settings)
+    test_dicomscp = DicomSCP(Title="Velocity")
+    test_dicomscp = DicomSCP(Title="Velocity", Node="1", Port="1", CalledAE="1")
+    # test_dicomscp = DicomSCP(Node="1", Port="1", CalledAE="1", CallingAE="1")
+    test_dicom_destination = DCMExportDestination(
+        "test_destination", test_anon_settings, Connection=test_dicomscp, ExportFolderPath=None
+    )
 
 
 if __name__ == "__main__":
