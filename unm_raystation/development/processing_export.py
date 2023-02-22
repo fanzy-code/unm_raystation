@@ -24,11 +24,11 @@ class DCMExportDestination:
         RetainUIDS: bool = False
         RetainSafePrivateAttributes: bool = False
 
-        def _default_anonymization_settings(self) -> dict:
-            return self.AnonymizationSettings().__dict__
+    def get_anonymization_settings(self) -> dict:
+        return self.AnonymizationSettings().__dict__
 
     def __post_init__(self):
-        anonymization_settings: dict = field(default_factory=self._default_anonymization_settings)
+        self.anonymization_settings: dict = field(default_factory=self.get_anonymization_settings)
         print(self.anonymization_settings)
 
     def handle_log_completion(self, result):
