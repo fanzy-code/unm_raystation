@@ -142,7 +142,7 @@ def test_set_dcm_patient_name(sample_rp_dcm_namer):
         assert sample_rp_dcm_namer.__getattribute__(key) == value
 
 
-def test_read_rd_properties(sample_rd_beam_dcm_namer):
+def test_read_rd_properties_one(sample_rd_beam_dcm_namer):
     rd_info_dict = sample_rd_beam_dcm_namer.read_rd_properties()
     assert rd_info_dict == {
         "referenced_rtplan_uid": "1.2.752.243.1.1.20230130114529116.5000.62080",
@@ -151,7 +151,7 @@ def test_read_rd_properties(sample_rd_beam_dcm_namer):
     }
 
 
-def test_read_rd_properties(sample_rd_sum_dcm_namer):
+def test_read_rd_properties_two(sample_rd_sum_dcm_namer):
     rd_info_dict = sample_rd_sum_dcm_namer.read_rd_properties()
     assert rd_info_dict == {
         "referenced_rtplan_uid": "1.2.752.243.1.1.20230130114529116.5000.62080",
