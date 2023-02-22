@@ -25,7 +25,7 @@ class DCMExportDestination:
 
     d = AnonymizationSettings().__dict__
 
-    anonymization_settings: dict  # pass d into here
+    anonymization_settings: dict = field(default_factory=d)
 
     def __post_init__(self):
         print(self.anonymization_settings)
@@ -44,7 +44,7 @@ class DCMExportDestination:
 
 
 def main():
-    test_dicom_destination = DCMExportDestination("test_destination")
+    test_dicom_destination = DCMExportDestination(name="test_destination")
 
 
 if __name__ == "__main__":
