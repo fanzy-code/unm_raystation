@@ -90,13 +90,7 @@ class DCMExportDestination:
 
 
 def main():
-    test_anon_settings = AnonymizationSettings()
-    test_dicomscp = DicomSCP(Title="Velocity")
-    test_dicomscp = DicomSCP(Title="Velocity", Node="1", Port="1", CalledAE="1")
-    # test_dicomscp = DicomSCP(Node="1", Port="1", CalledAE="1", CallingAE="1")
-    test_dicom_destination = DCMExportDestination(
-        "test_destination", test_anon_settings, Connection=test_dicomscp, ExportFolderPath=None
-    )
+    pass
 
 
 if __name__ == "__main__":
