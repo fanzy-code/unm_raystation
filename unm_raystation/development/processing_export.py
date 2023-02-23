@@ -3,12 +3,12 @@ Script to export plans to multiple locations
 """
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import List, Optional
-import logging
 
 import System
-from connect import *
+from connect import PyScriptObject, get_current  # type: ignore
 from rs_utils import raise_error
 
 # Query clinical DB titles
@@ -27,8 +27,6 @@ production_dicomscp_titles = [
 #     "SunCheck",
 #     "Eclipse",
 # ]
-
-
 
 
 @dataclass
@@ -59,13 +57,16 @@ class DicomSCP:
         if self.Title:
             try:
                 _clinic_db = get_current("ClinicDB")
-                self._allowed_titles = [AE.Title for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities]
+                self._allowed_titles = [
+                    AE.Title
+                    for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
+                ]
             except:
                 logging.warn("Unable to get titles from clinic_db")
 
-            if not(self.Title in self._allowed_titles):
+            if not (self.Title in self._allowed_titles):
                 raise ValueError(
-                    f"{self.Title} does not exist in the clinical DB.  Existing ones are {self._allowed_titles}."
+                    f"Title {self.Title} does not exist in the clinical DB.  Existing ones are {self._allowed_titles}."
                 )
 
         return
@@ -174,14 +175,15 @@ class DCMExportDestination:
         raise_error(f"Error exporting DICOM", error)
         return
 
-    def export(self, case):
+    def export(self, case: PyScriptObject):
         export_kwargs = vars(self)
+
         try:
             result = case.ScriptableQADicomExport(**export_kwargs)
             self.handle_log_completion(result)
         except System.InvalidOperationException as error:
             self.handle_log_warnings(error)
-            export_kwargs.IgnorePreConditionWarnings = True  # can I call it like this?
+            export_kwargs["IgnorePreConditionWarnings"] = True
             result = case.ScriptableQADicomExport(**export_kwargs)
             self.handle_log_completion(result)
         except Exception as error:
@@ -194,11 +196,17 @@ def main():
     case = get_current("Case")
     # figure some stuff out about the case in question, error checks and such
 
+    examination = get_current("Examination")
+
     # Test definition
 
-    mosaiq_dicomscp = DicomSCP(Title:)
-    mosaiq_destination_anonymization_settings = AnonymizationSettings()
+    velocity_dicomscp = DicomSCP(Title="Velocity")
+    velocity_destination_anonymization_settings = AnonymizationSettings()
+    velocity_dcm_export_destination = DCMExportDestination(
+        "Velocity", velocity_destination_anonymization_settings, Connection=velocity_dicomscp
+    )
 
+    velocity_dcm_export_destination.export(case)
 
     # Initialize the GUI
     # show the destinations
