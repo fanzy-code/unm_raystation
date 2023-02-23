@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from rs_utils import raise_error
+
 # Can I just query this??
 production_dicomscp_list = [
     "Velocity",
@@ -94,6 +96,11 @@ class DCMExportDestination:
     # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
     SetupBeamDrrImages: List[str]
 
+    # Custom DICOM .filter settings defined in Clinic Settings
+    DicomFilter: str = ""
+
+    IgnorePreConditionWarnings: bool = False
+
     # Choose one but not both
     Connection: Optional[DicomSCP] = None
     ExportFolderPath: Optional[str] = None
@@ -105,21 +112,62 @@ class DCMExportDestination:
             )
         return
 
+    # Get rid of these print statements and put it in logging or something
     def handle_log_completion(self, result):
-        return
+        try:
+            jsonWarnings = json.loads(str(result))
+            print("Completed!")
+            print("Comment:")
+            print(jsonWarnings["Comment"])
+            print("Warnings:")
+            for w in jsonWarnings["Warnings"]:
+                print(w)
+            print("Export notifications:")
+            # Export notifications is a list of notifications that the user should read.
+            for w in jsonWarnings["Notifications"]:
+                print(w)
+        except ValueError as error:
+            raise_error(f"Error reading completion message.", error)
 
     def handle_log_warnings(self, error):
-        return
+        try:
+            jsonWarnings = json.loads(str(error))
+            # If the json.loads() works then the script was stopped due to
+            # a non-blocking warning.
+            print("WARNING! Export Aborted!")
+            print("Comment:")
+            print(jsonWarnings["Comment"])
+            print("Warnings:")
+
+            # Here the user can handle the warnings. Continue on known warnings,
+            # stop on unknown warnings.
+            for w in jsonWarnings["Warnings"]:
+                print(w)
+        except ValueError as error:
+            raise_error(f"DICOM export unsuccessful.  Error reading warning message.", error)
 
     def handle_log_errors(self, error):
+        raise_error(f"Error exporting DICOM", error)
         return
 
-    def export(self):
+    def export(self, case):
+        export_kwargs = vars(self)
+        try:
+            result = case.ScriptableQADicomExport(**export_kwargs)
+            self.handle_log_completion(result)
+        except System.InvalidOperationException as error:
+            self.handle_log_warnings(error)
+            export_kwargs.IgnorePreConditionWarnings = True  # can I call it like this?
+            result = case.ScriptableQADicomExport(**export_kwargs)
+            self.handle_log_completion(result)
+        except Exception as error:
+            self.handle_log_errors(error)
+
         return
 
 
 def main():
-    pass
+    case = get_current("Case")
 
 
 if __name__ == "__main__":
