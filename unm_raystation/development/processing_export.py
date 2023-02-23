@@ -10,7 +10,7 @@ import System
 from connect import *
 from rs_utils import raise_error
 
-# Can I just query this??
+# Can I just query this from clinic settings?
 production_dicomscp_list = [
     "Velocity",
     "MOSAIQ",
@@ -20,6 +20,9 @@ production_dicomscp_list = [
     "SunCheck",
     "Eclipse",
 ]
+
+
+# Test definition
 
 
 @dataclass
@@ -170,6 +173,12 @@ class DCMExportDestination:
 
 def main():
     case = get_current("Case")
+    # figure some stuff out about the case in question, error checks and such
+
+    # Initialize the GUI
+    # show the destinations
+    # clicking the export should initialize the for loop through the destinations and run self.export
+    # during this time, errors have to be handled
 
 
 if __name__ == "__main__":
