@@ -7,26 +7,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-import System
+import System  # type: ignore
 from connect import PyScriptObject, get_current  # type: ignore
-from rs_utils import raise_error
-
-# Query clinical DB titles
-clinic_db = get_current("ClinicDB")
-production_dicomscp_titles = [
-    AE.Title for AE in clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
-]
-
-
-# production_dicomscp_titles = [
-#     "Velocity",
-#     "MOSAIQ",
-#     "Tomotherapy",
-#     "PACS",
-#     "LifeImage",
-#     "SunCheck",
-#     "Eclipse",
-# ]
+from rs_utils import raise_error  # type: ignore
 
 
 @dataclass
@@ -40,8 +23,19 @@ class DicomSCP:
     CallingAE: Optional[str] = None
     _allowed_titles: List[str] = []
 
+    # _allowed_titles: List[str] = [
+    #     "Velocity",
+    #     "MOSAIQ",
+    #     "Tomotherapy",
+    #     "PACS",
+    #     "LifeImage",
+    #     "SunCheck",
+    #     "Eclipse",
+    #   ]
+
     def get_dicomscp_dict(self) -> dict:
-        return {k: v for k, v in vars(self).items() if v is not None}
+        excluded_attrs = ["_allowed_titles"]
+        return {k: v for k, v in vars(self).items() if v is not None and k not in excluded_attrs}
 
     def __post_init__(self):
         if not self.Title and not all((self.Node, self.Port, self.CalledAE, self.CallingAE)):
@@ -55,6 +49,7 @@ class DicomSCP:
             )
 
         if self.Title:
+            # Query for allowed titles in ClinicDB
             try:
                 _clinic_db = get_current("ClinicDB")
                 self._allowed_titles = [
@@ -175,8 +170,15 @@ class DCMExportDestination:
         raise_error(f"Error exporting DICOM", error)
         return
 
-    def export(self, case: PyScriptObject):
+    def get_export_kwargs(self):
         export_kwargs = vars(self)
+        excluded_attrs = ["name"]
+        return {
+            k: v for k, v in export_kwargs.items() if v is not None and k not in excluded_attrs
+        }
+
+    def export(self, case: PyScriptObject):
+        export_kwargs = self.get_export_kwargs()
 
         try:
             result = case.ScriptableQADicomExport(**export_kwargs)
@@ -200,10 +202,10 @@ def main():
 
     # Test definition
 
-    velocity_dicomscp = DicomSCP(Title="Velocity")
-    velocity_destination_anonymization_settings = AnonymizationSettings()
     velocity_dcm_export_destination = DCMExportDestination(
-        "Velocity", velocity_destination_anonymization_settings, Connection=velocity_dicomscp
+        name="Velocity",
+        AnonymizationSettings=AnonymizationSettings(),
+        Connection=DicomSCP(Title="Velocity"),
     )
 
     velocity_dcm_export_destination.export(case)
