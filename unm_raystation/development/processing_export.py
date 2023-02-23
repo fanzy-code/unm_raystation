@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+import System
+from connect import *
 from rs_utils import raise_error
 
 # Can I just query this??
