@@ -21,7 +21,7 @@ class DicomSCP:
     Port: Optional[str] = None
     CalledAE: Optional[str] = None
     CallingAE: Optional[str] = None
-    _allowed_titles: List[str] = []
+    _allowed_titles: List[str] = field(default_factory=list)
 
     # _allowed_titles: List[str] = [
     #     "Velocity",
@@ -50,14 +50,15 @@ class DicomSCP:
 
         if self.Title:
             # Query for allowed titles in ClinicDB
-            try:
-                _clinic_db = get_current("ClinicDB")
-                self._allowed_titles = [
-                    AE.Title
-                    for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
-                ]
-            except:
-                logging.warn("Unable to get titles from clinic_db")
+            if not (self._allowed_titles):
+                try:
+                    _clinic_db = get_current("ClinicDB")
+                    self._allowed_titles = [
+                        AE.Title
+                        for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
+                    ]
+                except:
+                    logging.warn("Unable to get titles from clinic_db")
 
             if not (self.Title in self._allowed_titles):
                 raise ValueError(

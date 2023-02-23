@@ -1,10 +1,19 @@
 import pytest
 
-from unm_raystation.release.processing_export import *
+from unm_raystation.release.processing_export import (
+    AnonymizationSettings,
+    DCMExportDestination,
+    DicomSCP,
+)
 
 
-def test_DicomSCP_with_Title_only():
-    dicomscp = DicomSCP(Title="my_title")
+def test_DicomSCP_with_Title_only_not_allowed():
+    with pytest.raises(ValueError, match="Title "):
+        dicomscp = DicomSCP(Title="my_title")
+
+
+def test_DicomSCP_with_Title_only_allowed():
+    dicomscp = DicomSCP(Title="my_title", _allowed_titles=["my_title"])
     assert dicomscp.get_dicomscp_dict() == {"Title": "my_title"}
 
 
@@ -87,7 +96,7 @@ def test_AnonymizationSettings_get_anonymization_settings_dict():
 
 def test_DCMExportDestination_init():
     # Test case for valid input with connection
-    conn = DicomSCP(Title="TestTitle")
+    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
     a = AnonymizationSettings()
     d = DCMExportDestination(name="TestName", AnonymizationSettings=a, Connection=conn)
     assert d.name == "TestName"
@@ -106,7 +115,7 @@ def test_DCMExportDestination_init():
     assert d.ExportFolderPath == "/path/to/export"
 
     # Test case for invalid input with both connection and export folder path
-    conn = DicomSCP(Title="TestTitle")
+    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
     a = AnonymizationSettings()
     with pytest.raises(ValueError, match="Either"):
         d = DCMExportDestination(
