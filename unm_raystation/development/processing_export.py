@@ -4,7 +4,7 @@ Script to export plans to multiple locations
 
 import json
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 
 # Can I just query this??
 production_dicomscp_list = [
@@ -64,6 +64,35 @@ class AnonymizationSettings:
 class DCMExportDestination:
     name: str
     AnonymizationSettings: AnonymizationSettings
+    Examinations: List[str]  # Example [examination.Name]
+    RtStructureSetsForExaminations: List[str]  # Example [examination.Name]
+
+    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    RtStructureSetsReferencedFromBeamSets: List[str]
+
+    # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    RtRadiationSetForBeamSets: List[str]
+
+    # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    RtRadiationsForBeamSets: List[str]
+
+    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    PhysicalBeamSetDoseForBeamSets: List[str]
+
+    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    EffectiveBeamSetDoseForBeamSets: List[str]
+
+    # Example ["%s:%s"%(fromExamination.Name, toExamination.Name)]
+    SpatialRegistrationForExaminations: List[str]
+
+    # Example ["%s:%s:%s"%(case.PatientModel.StructureRegistrationGroups[0].Name, fromExamination.Name, toExamination.Name)]
+    DeformableSpatialRegistrationsForExaminations: List[str]
+
+    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    TreatmentBeamDrrImages: List[str]
+
+    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+    SetupBeamDrrImages: List[str]
 
     # Choose one but not both
     Connection: Optional[DicomSCP] = None
