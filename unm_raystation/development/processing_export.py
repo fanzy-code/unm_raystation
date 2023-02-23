@@ -5,24 +5,30 @@ Script to export plans to multiple locations
 import json
 from dataclasses import dataclass, field
 from typing import List, Optional
+import logging
 
 import System
 from connect import *
 from rs_utils import raise_error
 
-# Can I just query this from clinic settings?
-production_dicomscp_list = [
-    "Velocity",
-    "MOSAIQ",
-    "Tomotherapy",
-    "PACS",
-    "LifeImage",
-    "SunCheck",
-    "Eclipse",
+# Query clinical DB titles
+clinic_db = get_current("ClinicDB")
+production_dicomscp_titles = [
+    AE.Title for AE in clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
 ]
 
 
-# Test definition
+# production_dicomscp_titles = [
+#     "Velocity",
+#     "MOSAIQ",
+#     "Tomotherapy",
+#     "PACS",
+#     "LifeImage",
+#     "SunCheck",
+#     "Eclipse",
+# ]
+
+
 
 
 @dataclass
@@ -34,6 +40,7 @@ class DicomSCP:
     Port: Optional[str] = None
     CalledAE: Optional[str] = None
     CallingAE: Optional[str] = None
+    _allowed_titles: List[str] = []
 
     def get_dicomscp_dict(self) -> dict:
         return {k: v for k, v in vars(self).items() if v is not None}
@@ -48,6 +55,18 @@ class DicomSCP:
             raise ValueError(
                 "Both Title and (Node, Port, CalledAE, CallingAE) are defined, only one can be."
             )
+
+        if self.Title:
+            try:
+                _clinic_db = get_current("ClinicDB")
+                self._allowed_titles = [AE.Title for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities]
+            except:
+                logging.warn("Unable to get titles from clinic_db")
+
+            if not(self.Title in self._allowed_titles):
+                raise ValueError(
+                    f"{self.Title} does not exist in the clinical DB.  Existing ones are {self._allowed_titles}."
+                )
 
         return
 
@@ -174,6 +193,12 @@ class DCMExportDestination:
 def main():
     case = get_current("Case")
     # figure some stuff out about the case in question, error checks and such
+
+    # Test definition
+
+    mosaiq_dicomscp = DicomSCP(Title:)
+    mosaiq_destination_anonymization_settings = AnonymizationSettings()
+
 
     # Initialize the GUI
     # show the destinations
