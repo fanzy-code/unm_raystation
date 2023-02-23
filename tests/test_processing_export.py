@@ -1,6 +1,6 @@
 import pytest
 
-from unm_raystation.development.processing_export import *
+from unm_raystation.release.processing_export import *
 
 
 def test_DicomSCP_with_Title_only():
