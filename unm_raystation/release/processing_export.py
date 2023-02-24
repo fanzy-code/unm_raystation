@@ -23,16 +23,6 @@ class DicomSCP:
     CallingAE: Optional[str] = None
     _allowed_titles: List[str] = field(default_factory=list)
 
-    # _allowed_titles: List[str] = [
-    #     "Velocity",
-    #     "MOSAIQ",
-    #     "Tomotherapy",
-    #     "PACS",
-    #     "LifeImage",
-    #     "SunCheck",
-    #     "Eclipse",
-    #   ]
-
     def get_dicomscp_dict(self) -> dict:
         excluded_attrs = ["_allowed_titles"]
         return {k: v for k, v in vars(self).items() if v is not None and k not in excluded_attrs}
@@ -182,12 +172,12 @@ class DCMExportDestination:
         export_kwargs = self.get_export_kwargs()
 
         try:
-            result = case.ScriptableQADicomExport(**export_kwargs)
+            result = case.ScriptableDicomExport(**export_kwargs)
             self.handle_log_completion(result)
         except System.InvalidOperationException as error:
             self.handle_log_warnings(error)
             export_kwargs["IgnorePreConditionWarnings"] = True
-            result = case.ScriptableQADicomExport(**export_kwargs)
+            result = case.ScriptableDicomExport(**export_kwargs)
             self.handle_log_completion(result)
         except Exception as error:
             self.handle_log_errors(error)
@@ -195,11 +185,16 @@ class DCMExportDestination:
         return
 
 
+# I need to create a class that reads current case and examination
+
+# Create a class for "DicomExportDestination" which I can configure what needs to go to that specified location
+# Title or
+
+
 def main():
     case = get_current("Case")
-    # figure some stuff out about the case in question, error checks and such
-
     examination = get_current("Examination")
+    beam_set = get_current("BeamSet")
 
     # Test definition
 
@@ -207,9 +202,20 @@ def main():
         name="Velocity",
         AnonymizationSettings=AnonymizationSettings(),
         Connection=DicomSCP(Title="Velocity"),
+        Examinations=[examination.Name],
+        RtStructureSetsForExaminations=[examination.Name],
+        BeamSets=[beam_set.BeamSetIdentifier()],
+        PhysicalBeamSetDoseForBeamSets=[beam_set.BeamSetIdentifier()],
+        EffectiveBeamSetDoseForBeamSets=[beam_set.BeamSetIdentifier()],
+        PhysicalBeamDosesForBeamSets=[beam_set.BeamSetIdentifier()],
+        EffectiveBeamDosesForBeamSets=[beam_set.BeamSetIdentifier()],
+        SpatialRegistrationForExaminations=[],
+        TreatmentBeamDrrImages=[beam_set.BeamSetIdentifier()],
+        SetupBeamDrrImages=[beam_set.BeamSetIdentifier()],
+        RtStructureSetsReferencedFromBeamSets=[beam_set.BeamSetIdentifier()],
     )
 
-    velocity_dcm_export_destination.export(case)
+    # velocity_dcm_export_destination.export(case)
 
     # Initialize the GUI
     # show the destinations

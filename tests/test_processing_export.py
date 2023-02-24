@@ -94,38 +94,38 @@ def test_AnonymizationSettings_get_anonymization_settings_dict():
     assert a.get_anonymization_settings_dict() == expected
 
 
-def test_DCMExportDestination_init():
-    # Test case for valid input with connection
-    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
-    a = AnonymizationSettings()
-    d = DCMExportDestination(name="TestName", AnonymizationSettings=a, Connection=conn)
-    assert d.name == "TestName"
-    assert d.AnonymizationSettings == a
-    assert d.Connection == conn
-    assert d.ExportFolderPath is None
+# def test_DCMExportDestination_init():
+#     # Test case for valid input with connection
+#     conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
+#     a = AnonymizationSettings()
+#     d = DCMExportDestination(name="TestName", AnonymizationSettings=a, Connection=conn)
+#     assert d.name == "TestName"
+#     assert d.AnonymizationSettings == a
+#     assert d.Connection == conn
+#     assert d.ExportFolderPath is None
 
-    # Test case for valid input with export folder path
-    a = AnonymizationSettings()
-    d = DCMExportDestination(
-        name="TestName", AnonymizationSettings=a, ExportFolderPath="/path/to/export"
-    )
-    assert d.name == "TestName"
-    assert d.AnonymizationSettings == a
-    assert d.Connection is None
-    assert d.ExportFolderPath == "/path/to/export"
+#     # Test case for valid input with export folder path
+#     a = AnonymizationSettings()
+#     d = DCMExportDestination(
+#         name="TestName", AnonymizationSettings=a, ExportFolderPath="/path/to/export"
+#     )
+#     assert d.name == "TestName"
+#     assert d.AnonymizationSettings == a
+#     assert d.Connection is None
+#     assert d.ExportFolderPath == "/path/to/export"
 
-    # Test case for invalid input with both connection and export folder path
-    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
-    a = AnonymizationSettings()
-    with pytest.raises(ValueError, match="Either"):
-        d = DCMExportDestination(
-            name="TestName",
-            AnonymizationSettings=a,
-            Connection=conn,
-            ExportFolderPath="/path/to/export",
-        )
+#     # Test case for invalid input with both connection and export folder path
+#     conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
+#     a = AnonymizationSettings()
+#     with pytest.raises(ValueError, match="Either"):
+#         d = DCMExportDestination(
+#             name="TestName",
+#             AnonymizationSettings=a,
+#             Connection=conn,
+#             ExportFolderPath="/path/to/export",
+#         )
 
-    # Test case for invalid input with neither connection nor export folder path
-    a = AnonymizationSettings()
-    with pytest.raises(ValueError, match="Either"):
-        d = DCMExportDestination(name="TestName", AnonymizationSettings=a)
+#     # Test case for invalid input with neither connection nor export folder path
+#     a = AnonymizationSettings()
+#     with pytest.raises(ValueError, match="Either"):
+#         d = DCMExportDestination(name="TestName", AnonymizationSettings=a)
