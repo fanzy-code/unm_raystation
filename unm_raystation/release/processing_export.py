@@ -48,7 +48,7 @@ class DicomSCP:
                         for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
                     ]
                 except:
-                    logging.warn("Unable to get titles from clinic_db")
+                    logging.warning("Unable to get titles from clinic_db")
 
             if not (self.Title in self._allowed_titles):
                 raise ValueError(
@@ -76,43 +76,76 @@ class AnonymizationSettings:
 @dataclass
 class DCMExportDestination:
     name: str
-    AnonymizationSettings: AnonymizationSettings
-    Examinations: List[str]  # Example [examination.Name]
-    RtStructureSetsForExaminations: List[str]  # Example [examination.Name]
+    AnonymizationSettings: AnonymizationSettings = AnonymizationSettings()
 
-    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    RtStructureSetsReferencedFromBeamSets: List[str]
+    # Supported
+    Active_CT: bool = False
+    _Examinations: Optional[List[str]] = None  # Example [examination.Name]
 
-    # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    RtRadiationSetForBeamSets: List[str]
+    # Supported
+    RtStructureSet_from_Active_CT: bool = False
+    _RtStructureSetsForExaminations: Optional[List[str]] = None  # Example [examination.Name]
 
-    # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    RtRadiationsForBeamSets: List[str]
+    # Not supported
+    _RtStructureSetsReferencedFromBeamSets: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    PhysicalBeamSetDoseForBeamSets: List[str]
+    # Supported
+    Active_RTPlan: bool = False
+    _BeamSets: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    EffectiveBeamSetDoseForBeamSets: List[str]
+    # Not supported
+    _RtRadiationSetForBeamSets: Optional[
+        List[str]
+    ] = None  # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Example ["%s:%s"%(fromExamination.Name, toExamination.Name)]
-    SpatialRegistrationForExaminations: List[str]
+    # Not supported
+    _RtRadiationsForBeamSets: Optional[
+        List[str]
+    ] = None  # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Example ["%s:%s:%s"%(case.PatientModel.StructureRegistrationGroups[0].Name, fromExamination.Name, toExamination.Name)]
-    DeformableSpatialRegistrationsForExaminations: List[str]
+    # Not supported; for no tissue hetereogeneity
+    _PhysicalBeamSetDoseForBeamSets: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    TreatmentBeamDrrImages: List[str]
+    # Supported; dose calculated with tissue hetereogeneity
+    RTDose_for_active_BeamSet_with_hetereogeneity_correction: bool = False
+    _EffectiveBeamSetDoseForBeamSets: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
-    SetupBeamDrrImages: List[str]
+    # Not supported
+    _SpatialRegistrationForExaminations: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(fromExamination.Name, toExamination.Name)]
 
-    # Custom DICOM .filter settings defined in Clinic Settings
-    DicomFilter: str = ""
+    # Not supported
+    _DeformableSpatialRegistrationsForExaminations: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s:%s"%(case.PatientModel.StructureRegistrationGroups[0].Name, fromExamination.Name, toExamination.Name)]
 
-    IgnorePreConditionWarnings: bool = False
+    # Supported
+    TxBeam_DRRs: bool = False
+    _TreatmentBeamDrrImages: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Choose one but not both
+    # Supported
+    SetupBeam_DRRs: bool = False
+    _SetupBeamDrrImages: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+
+    # Not supported, Custom DICOM .filter settings defined in Clinic Settings
+    _DicomFilter: str = ""
+
+    _IgnorePreConditionWarnings: bool = False
+
+    # Supported, Choose one but not both
     Connection: Optional[DicomSCP] = None
     ExportFolderPath: Optional[str] = None
 
@@ -121,6 +154,49 @@ class DCMExportDestination:
             raise ValueError(
                 "Either Connection or ExportFolderPath has to be defined, but not both"
             )
+        return
+
+    def get_export_kwargs(self):
+        export_kwargs = {
+            var_name.lstrip("_"): var_value
+            for var_name, var_value in vars(self).items()
+            if (var_name.startswith("_") and var_value)
+            or (var_name == "ExportFolderPath" and var_value)
+        }
+
+        if self.Connection:
+            export_kwargs["Connection"] = self.Connection.get_dicomscp_dict()
+
+        export_kwargs[
+            "AnonymizationSettings"
+        ] = self.AnonymizationSettings.get_anonymization_settings_dict()
+
+        return export_kwargs
+
+    def set_export_arguments(self, examination: PyScriptObject, beam_set: PyScriptObject):
+        if examination is None:
+            raise ValueError("No examination provided")
+        if beam_set is None:
+            raise ValueError("No beam set provided")
+
+        settings_to_export_arguments = {
+            "Active_CT": {"_Examinations": [examination.Name]},
+            "RtStructureSet_from_Active_CT": {
+                "_RtStructureSetsForExaminations": [examination.Name]
+            },
+            "Active_RTPlan": {"_BeamSets": [beam_set.BeamSetIdentifier()]},
+            "RTDose_for_active_BeamSet_with_hetereogeneity_correction": {
+                "_EffectiveBeamSetDoseForBeamSets": [beam_set.BeamSetIdentifier()]
+            },
+            "TxBeam_DRRs": {"_TreatmentBeamDrrImages": [beam_set.BeamSetIdentifier()]},
+            "SetupBeam_DRRs": {"_SetupBeamDrrImages": [beam_set.BeamSetIdentifier()]},
+        }
+
+        for attr, props in settings_to_export_arguments.items():
+            if getattr(self, attr):
+                for prop, value in props.items():
+                    setattr(self, prop, value)
+
         return
 
     # Get rid of these print statements and put it in logging or something
@@ -161,14 +237,8 @@ class DCMExportDestination:
         raise_error(f"Error exporting DICOM", error)
         return
 
-    def get_export_kwargs(self):
-        export_kwargs = vars(self)
-        excluded_attrs = ["name"]
-        return {
-            k: v for k, v in export_kwargs.items() if v is not None and k not in excluded_attrs
-        }
-
-    def export(self, case: PyScriptObject):
+    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):
+        self.set_export_arguments(examination, beam_set)
         export_kwargs = self.get_export_kwargs()
 
         try:
@@ -185,12 +255,6 @@ class DCMExportDestination:
         return
 
 
-# I need to create a class that reads current case and examination
-
-# Create a class for "DicomExportDestination" which I can configure what needs to go to that specified location
-# Title or
-
-
 def main():
     case = get_current("Case")
     examination = get_current("Examination")
@@ -200,27 +264,10 @@ def main():
 
     velocity_dcm_export_destination = DCMExportDestination(
         name="Velocity",
-        AnonymizationSettings=AnonymizationSettings(),
         Connection=DicomSCP(Title="Velocity"),
-        Examinations=[examination.Name],
-        RtStructureSetsForExaminations=[examination.Name],
-        BeamSets=[beam_set.BeamSetIdentifier()],
-        PhysicalBeamSetDoseForBeamSets=[beam_set.BeamSetIdentifier()],
-        EffectiveBeamSetDoseForBeamSets=[beam_set.BeamSetIdentifier()],
-        PhysicalBeamDosesForBeamSets=[beam_set.BeamSetIdentifier()],
-        EffectiveBeamDosesForBeamSets=[beam_set.BeamSetIdentifier()],
-        SpatialRegistrationForExaminations=[],
-        TreatmentBeamDrrImages=[beam_set.BeamSetIdentifier()],
-        SetupBeamDrrImages=[beam_set.BeamSetIdentifier()],
-        RtStructureSetsReferencedFromBeamSets=[beam_set.BeamSetIdentifier()],
+        Active_CT=True,
+        Active_RTPlan=True,
     )
-
-    # velocity_dcm_export_destination.export(case)
-
-    # Initialize the GUI
-    # show the destinations
-    # clicking the export should initialize the for loop through the destinations and run self.export
-    # during this time, errors have to be handled
 
 
 if __name__ == "__main__":

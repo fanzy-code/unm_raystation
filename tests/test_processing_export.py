@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 
 from unm_raystation.release.processing_export import (
@@ -94,38 +96,82 @@ def test_AnonymizationSettings_get_anonymization_settings_dict():
     assert a.get_anonymization_settings_dict() == expected
 
 
-# def test_DCMExportDestination_init():
-#     # Test case for valid input with connection
-#     conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
-#     a = AnonymizationSettings()
-#     d = DCMExportDestination(name="TestName", AnonymizationSettings=a, Connection=conn)
-#     assert d.name == "TestName"
-#     assert d.AnonymizationSettings == a
-#     assert d.Connection == conn
-#     assert d.ExportFolderPath is None
+def test_DCMExportDestination_init():
+    # Test case for valid input with connection
+    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
+    a = AnonymizationSettings()
+    d = DCMExportDestination(name="TestName", Connection=conn)
+    assert d.name == "TestName"
+    assert d.AnonymizationSettings == a
+    assert d.Connection == conn
+    assert d.ExportFolderPath is None
 
-#     # Test case for valid input with export folder path
-#     a = AnonymizationSettings()
-#     d = DCMExportDestination(
-#         name="TestName", AnonymizationSettings=a, ExportFolderPath="/path/to/export"
-#     )
-#     assert d.name == "TestName"
-#     assert d.AnonymizationSettings == a
-#     assert d.Connection is None
-#     assert d.ExportFolderPath == "/path/to/export"
+    # Test case for valid input with export folder path
+    a = AnonymizationSettings()
+    d = DCMExportDestination(name="TestName", ExportFolderPath="/path/to/export")
+    assert d.name == "TestName"
+    assert d.AnonymizationSettings == a
+    assert d.Connection is None
+    assert d.ExportFolderPath == "/path/to/export"
 
-#     # Test case for invalid input with both connection and export folder path
-#     conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
-#     a = AnonymizationSettings()
-#     with pytest.raises(ValueError, match="Either"):
-#         d = DCMExportDestination(
-#             name="TestName",
-#             AnonymizationSettings=a,
-#             Connection=conn,
-#             ExportFolderPath="/path/to/export",
-#         )
+    # Test case for invalid input with both connection and export folder path
+    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
+    with pytest.raises(ValueError, match="Either"):
+        d = DCMExportDestination(
+            name="TestName",
+            Connection=conn,
+            ExportFolderPath="/path/to/export",
+        )
 
-#     # Test case for invalid input with neither connection nor export folder path
-#     a = AnonymizationSettings()
-#     with pytest.raises(ValueError, match="Either"):
-#         d = DCMExportDestination(name="TestName", AnonymizationSettings=a)
+    # Test case for invalid input with neither connection nor export folder path
+    with pytest.raises(ValueError, match="Either"):
+        d = DCMExportDestination(name="TestName")
+
+
+@pytest.fixture
+def valid_title_export_destination():
+    conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
+    return DCMExportDestination(name="TestName", Connection=conn)
+
+
+def test_set_export_arguments_active_ct(valid_title_export_destination):
+    examination = Mock(Name="test_exam")
+    beam_set = Mock(Name="test_beam_set")
+    valid_title_export_destination.Active_CT = True
+    with pytest.raises(ValueError, match="No beam"):
+        valid_title_export_destination.set_export_arguments(examination, None)
+
+    with pytest.raises(ValueError, match="No examination"):
+        valid_title_export_destination.set_export_arguments(None, beam_set)
+
+
+def test_set_export_arguments_active_rtplan(valid_title_export_destination):
+    examination = Mock(Name="test_exam")
+    beam_set = Mock(BeamSetIdentifier=lambda: "test_beam_set")
+    valid_title_export_destination.Active_RTPlan = True
+    valid_title_export_destination.set_export_arguments(examination, beam_set)
+    assert valid_title_export_destination._BeamSets == ["test_beam_set"]
+
+
+def test_get_export_kwargs(valid_title_export_destination):
+    examination = Mock(Name="test_exam")
+    beam_set = Mock(BeamSetIdentifier=lambda: "test_beam_set")
+    valid_title_export_destination.Active_CT = True
+    valid_title_export_destination.Active_RTPlan = True
+    valid_title_export_destination.set_export_arguments(examination, beam_set)
+    kwargs = valid_title_export_destination.get_export_kwargs()
+    assert kwargs == {
+        "Examinations": ["test_exam"],
+        "BeamSets": ["test_beam_set"],
+        "Connection": {"Title": "TestTitle"},
+        "AnonymizationSettings": {
+            "anonymize": False,
+            "AnonymizedName": "anonymizedName",
+            "AnonymizedID": "anonymizedID",
+            "RetainDates": False,
+            "RetainDeviceIdentity": False,
+            "RetainInstitutionIdentity": False,
+            "RetainUIDS": False,
+            "RetainSafePrivateAttributes": False,
+        },
+    }
