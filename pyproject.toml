@@ -97,7 +97,7 @@ pythonnet = "2.5.1"
 pywin32 = {version="300", platform = "win32"}
 pywinpty = {version="2.0.9", platform = "win32"}
 setuptools = "49.2.1"
-
+pillow = "9.4.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
