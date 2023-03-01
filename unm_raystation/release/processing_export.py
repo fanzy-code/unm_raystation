@@ -4,12 +4,16 @@ Script to export plans to multiple locations
 
 import json
 import logging
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Optional
 
 import System  # type: ignore
-from connect import PyScriptObject, get_current  # type: ignore
+from connect import *  # type: ignore
 from rs_utils import raise_error  # type: ignore
+from rs_utils import get_current_helper
+from System.Windows import *  # type: ignore
+from System.Windows.Controls import *  # type: ignore
 
 
 @dataclass
@@ -156,16 +160,43 @@ class DCMExportDestination:
             )
         return
 
+    def get_display_export_args(self):
+        # ordered list of Name, Connection, ExportFolderPath, Active_CT,
+        # RtStructureSet_from_Active_CT, Active_RTPlan,
+        # RTDose_for_active_BeamSet_with_hetereogeneity_correction, TxBeam_DRRs, SetupBeam_DRRs
+        display_dictionary = {
+            "Name": self.name,
+            "Connection": self.Connection,
+            "Export Folder": self.ExportFolderPath,
+            "(Active) CT": self.Active_CT,
+            "(Active) RT Structure Set": self.RtStructureSet_from_Active_CT,
+            "(Active) RT Plan": self.ActiveRTPlan,
+            "(Active) RT Dose w/ hetereogeneity corrections": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
+            "(Active) Treatment Beam DRRs": self.TxBeam_DRRs,
+            "(Active) Setup Beam DRRs": self.SetupBeam_DRRs,
+        }
+        return OrderedDict(display_dictionary)
+
     def get_export_kwargs(self):
+        # Prepares the export kwargs dictionary for ScriptableDicomExport function
+
+        # Initialize with all variables leading with '_'
         export_kwargs = {
             var_name.lstrip("_"): var_value
             for var_name, var_value in vars(self).items()
             if (var_name.startswith("_") and var_value)
-            or (var_name == "ExportFolderPath" and var_value)
         }
+
+        # Pick a connection type
+        if self.Connection and self.ExportFolderPath:
+            raise ValueError("Both Connection and ExportFolderPath cannot be defined.")
 
         if self.Connection:
             export_kwargs["Connection"] = self.Connection.get_dicomscp_dict()
+        elif self.ExportFolderPath:
+            export_kwargs["ExportFolderPath"] = self.ExportFolderPath
+        else:
+            raise ValueError("Either Connection or ExportFolderPath must be defined.")
 
         export_kwargs[
             "AnonymizationSettings"
@@ -173,12 +204,15 @@ class DCMExportDestination:
 
         return export_kwargs
 
-    def set_export_arguments(self, examination: PyScriptObject, beam_set: PyScriptObject):
+    def set_export_arguments(
+        self, examination: PyScriptObject, beam_set: PyScriptObject, **kwargs  # type: ignore
+    ):
         if examination is None:
             raise ValueError("No examination provided")
         if beam_set is None:
             raise ValueError("No beam set provided")
 
+        # Set export arguments for dicom objects needed
         settings_to_export_arguments = {
             "Active_CT": {"_Examinations": [examination.Name]},
             "RtStructureSet_from_Active_CT": {
@@ -196,6 +230,10 @@ class DCMExportDestination:
             if getattr(self, attr):
                 for prop, value in props.items():
                     setattr(self, prop, value)
+
+        # Format ExportFolderPath string
+        if self.ExportFolderPath:
+            self.ExportFolderPath = self.ExportFolderPath.format(**kwargs)
 
         return
 
@@ -237,7 +275,7 @@ class DCMExportDestination:
         raise_error(f"Error exporting DICOM", error)
         return
 
-    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):
+    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
         self.set_export_arguments(examination, beam_set)
         export_kwargs = self.get_export_kwargs()
 
@@ -255,19 +293,125 @@ class DCMExportDestination:
         return
 
 
-def main():
-    case = get_current("Case")
-    examination = get_current("Examination")
-    beam_set = get_current("BeamSet")
-
-    # Test definition
-
-    velocity_dcm_export_destination = DCMExportDestination(
+dcm_destinations = [
+    DCMExportDestination(
+        name="MOSAIQ",
+        Connection=DicomSCP(Title="MOSAIQ"),
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        TxBeam_DRRs=True,
+        SetupBeam_DRRs=True,
+    ),
+    DCMExportDestination(
+        name="SunCheck",
+        Connection=DicomSCP(Title="SunCheck"),
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
+    ),
+    DCMExportDestination(
         name="Velocity",
         Connection=DicomSCP(Title="Velocity"),
         Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
         Active_RTPlan=True,
-    )
+        RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
+    ),
+    DCMExportDestination(
+        name="CRAD",
+        ExportFolderPath="\hsc-cc-crad\CRAD Patients{machine_name}",
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+    ),
+]
+
+
+class MyWindow(RayWindow):  # type: ignore
+    xaml = """
+    <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    Title="MainWindow" Height="450" Width="800">
+        {xaml_table}
+    </Window>
+    """
+
+    def __init__(self, dcm_destinations):
+        self.case: PyScriptObject = get_current_helper("Case")
+        self.examination: PyScriptObject = get_current_helper("Examination")
+        self.beam_set: PyScriptObject = get_current_helper("BeamSet")
+        self.kwargs: dict = {"machine_name": self.beam_set.MachineReference.MachineName}
+
+        self.dcm_destinations: list[DCMExportDestination] = dcm_destinations
+
+        # Get display headers, cannot fail because dcm_destinations cannot be None
+        self.display_table_headers = self.dcm_destinations[0].get_display_export_args().keys()
+        self.display_number_rows = len(dcm_destinations)
+
+        # Make some modifications to XAML
+
+        # Get the xaml_table by using self properties
+        xaml_table = self.initialize_xaml_table(
+            self.display_table_headers, self.display_number_rows
+        )
+
+        # Modify the xaml code
+        self.xaml = self.xaml.format(xaml_table)
+
+        # Load the modified xaml code
+        self.LoadComponent(self.xaml)
+
+    def initialize_xaml_table(self, table_headers, number_of_rows):
+        # Defines the starting point of XAML table
+        xaml_table = """
+        <Grid>        
+            <Grid.ColumnDefinitions>
+                {columns_definition_xaml}
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                {rows_definition_xaml}
+            </Grid.RowDefinitions>
+                {headers_xaml}
+                {rows_xaml}
+        </Grid>
+        """
+
+        number_of_columns = len(table_headers)
+        columns_definition_xaml = """"""
+        for column_number in range(number_of_columns):
+            columns_definition_xaml += """<ColumnDefinition />"""
+
+        rows_definition_xaml = """"""
+        for row_number in range(number_of_rows):
+            rows_definition_xaml += """<RowDefinition Height="30" />"""
+
+        headers_xaml = """"""
+        for column_number, header in enumerate(table_headers):
+            headers_xaml += """<TextBlock FontSize="16" FontWeight="Bold" Grid.Row="0" Grid.Column="{column_number}"    
+                   Text="{header}" />""".format(
+                column_number=column_number, header=header
+            )
+
+        rows_xaml = """"""
+
+        xaml_table.format(
+            columns_definition_xaml=columns_definition_xaml,
+            rows_definition_xaml=rows_definition_xaml,
+            headers_xaml=headers_xaml,
+            rows_xaml=rows_xaml,
+        )
+
+        return xaml_table
+
+
+def main():
+    window = MyWindow()
+    window.ShowDialog()
+
+    # run the GUI to list all the export destinations in a row
+
+    # for loop export ideally
 
 
 if __name__ == "__main__":
