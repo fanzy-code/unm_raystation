@@ -177,13 +177,13 @@ class DCMExportDestination:
         display_dictionary = {
             "Name": self.name,
             "Connection": self.Connection,
-            "Export Folder": self.ExportFolderPath,
+            "Export_Folder": self.ExportFolderPath,
             "CT": self.Active_CT,
-            "RT Structure Set": self.RtStructureSet_from_Active_CT,
-            "RT Plan": self.Active_RTPlan,
-            "RT Dose with hetereogeneity corrections": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
-            "Treatment Beam DRRs": self.TxBeam_DRRs,
-            "Setup Beam DRRs": self.SetupBeam_DRRs,
+            "RT_Structure_Set": self.RtStructureSet_from_Active_CT,
+            "RT_Plan": self.Active_RTPlan,
+            "RT_Dose": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
+            "Treatment_Beam_DRRs": self.TxBeam_DRRs,
+            "Setup_Beam_DRRs": self.SetupBeam_DRRs,
         }
         return OrderedDict(display_dictionary)
 
@@ -354,7 +354,7 @@ class MyWindow(RayWindow):  # type: ignore
         # Initialize the XAML
         xaml = """
         <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
-        Title="Export Destinations" Height="600" Width="800">
+        Title="Export Destinations" Height="400" Width="1230">
         <Grid Margin="10,10,10,10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -373,12 +373,6 @@ class MyWindow(RayWindow):  # type: ignore
 
         xaml_table = self.initialize_xaml_table()
 
-        # xaml_table_rows =
-
-        # xaml_table = xaml_table_header.format(xaml_table_rows=xaml_table_rows)
-
-        # xaml_table =
-
         # Modify the xaml code
         modified_xaml = xaml.format(
             xaml_table_description=xaml_table_description, xaml_table=xaml_table
@@ -389,10 +383,21 @@ class MyWindow(RayWindow):  # type: ignore
         # Load the modified xaml code
         self.LoadComponent(modified_xaml)
 
+    def get_xaml_dcm_destinations(self):
+        xaml_dcm_destinations = []
+        for dcm_destination in self.dcm_destinations:
+            xaml_dcm_destination = {}
+            dcm_destination_display_dictionary = dcm_destination.get_display_export_args()
+            for key, value in dcm_destination_display_dictionary.items():
+                xaml_key = dcm_destination.name + "_" + key
+                xaml_value = value
+                xaml_dcm_destination.update({xaml_key: xaml_value})
+            xaml_dcm_destinations.append(xaml_dcm_destination)
+        return xaml_dcm_destinations
+
     def initialize_xaml_table_description(self):
-        xaml_table_description = """"""
         xaml_table_description = """
-        <Grid Grid.Row="0" Margin="10,10,10,10">        
+        <Grid Grid.Row="0" Margin="15,15,15,15">        
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="125"/>
                 <ColumnDefinition Width="125"/>
@@ -417,24 +422,23 @@ class MyWindow(RayWindow):  # type: ignore
         return xaml_table_description
 
     def get_xaml_table_row(self):
-        dcm_destinations = self.dcm_destinations
+        xaml_dcm_destinations = self.get_xaml_dcm_destinations()
         xaml_table_rows = """"""
-        for row_count, dcm_destination in enumerate(
-            dcm_destinations, start=1
+        for row_count, xaml_dcm_destination in enumerate(
+            xaml_dcm_destinations, start=1
         ):  # row_count = 0 is for table headers
-            dcm_destination_display_dictionary = dcm_destination.get_display_export_args()
-            for column_count, (key, value) in enumerate(
-                dcm_destination_display_dictionary.items()
-            ):
-                if isinstance(value, (str, type)):
-                    # xaml_table_rows += """"<TextBlock FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap"/>""".format(
-                    #     row_count=row_count, column_count=column_count, value=value
-                    # )
-                    xaml_table_rows += """<TextBlock FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap"/>\n""".format(
+            for column_count, (key, value) in enumerate(xaml_dcm_destination.items()):
+                if isinstance(value, (str, DicomSCP)):
+                    xaml_table_rows += """<TextBlock FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap" Padding="3"/>\n""".format(
                         row_count=row_count, column_count=column_count, value=value
                     )
                 elif isinstance(value, bool):
-                    xaml_table_rows += """"""
+                    xaml_table_rows += """<CheckBox Name="{key}" IsChecked="{value}" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="{row_count}" Grid.Column="{column_count}" FontSize="14" Padding="3"/>\n""".format(
+                        row_count=row_count,
+                        column_count=column_count,
+                        key=key,
+                        value=str(value),
+                    )
                 elif value is None:
                     xaml_table_rows += """"""
         return xaml_table_rows
@@ -445,7 +449,7 @@ class MyWindow(RayWindow):  # type: ignore
 
         # Defines the starting point of XAML table
         xaml_table = """
-        <Grid Grid.Row="1" Margin="10,10,10,10">        
+        <Grid Grid.Row="1" Margin="15,15,15,15">        
             <Grid.ColumnDefinitions>
                 {xaml_column_definitions}
             </Grid.ColumnDefinitions>
@@ -461,17 +465,17 @@ class MyWindow(RayWindow):  # type: ignore
         number_of_columns = len(table_headers)
         xaml_column_definitions = """"""
         for column_number in range(number_of_columns):
-            xaml_column_definitions += """<ColumnDefinition Width="125"/>\n"""
+            xaml_column_definitions += """<ColumnDefinition />\n"""
 
         # xaml_row_definitions
         xaml_row_definitions = """"""
         for row_number in range(number_of_rows + 1):
-            xaml_row_definitions += """<RowDefinition Height="Auto" />\n"""
+            xaml_row_definitions += """<RowDefinition />\n"""
 
         # xaml_table_headers
         xaml_table_headers = """"""
         for column_number, header in enumerate(table_headers):
-            xaml_table_headers += """<TextBlock FontSize="12" FontWeight="Bold" Grid.Row="0" Grid.Column="{column_number}" Text="{header}" TextWrapping="Wrap"/>\n""".format(
+            xaml_table_headers += """<TextBlock FontSize="12" FontWeight="Bold" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="5" Grid.Column="{column_number}" Text="{header}" TextWrapping="Wrap"/>\n""".format(
                 column_number=column_number, header=header
             )
 
@@ -485,15 +489,12 @@ class MyWindow(RayWindow):  # type: ignore
             xaml_table_rows=xaml_table_rows,
         )
 
-        print(xaml_table)
         return xaml_table
 
 
 def main():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
-
-    # run the GUI to list all the export destinations in a row
 
     # for loop export ideally
 

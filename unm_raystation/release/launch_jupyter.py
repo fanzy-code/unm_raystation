@@ -28,6 +28,17 @@
     sys.path.append(environment_scripts_path)
     import rs_utils
 
+    
+    Permanent solution per ChatGPT:
+
+    The extra_startup_script option should be a path to a file containing the startup script you want to run when 
+    Jupyter Notebook starts up. The path can be an absolute or relative file path.
+
+    cli_argv = [
+    f"--ServerApp.browser={browser_executable}",
+    f"--ServerApp.root_dir='{startup_path}'",
+    f"--NotebookApp.extra_startup_script='{startup_script}'",
+]
 
 """
 
