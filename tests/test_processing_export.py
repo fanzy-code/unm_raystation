@@ -1,3 +1,14 @@
+### Initialize the test environment by adding paths to ScriptClient.dll and connect module
+import sys
+
+from definitions import ROOT_DIR
+
+ScriptClient_path = ROOT_DIR + "\\RS_ScriptClient\\"
+connect_path = ROOT_DIR + "\\RS_ScriptClient\\connect\\"
+sys.path.append(ScriptClient_path)
+sys.path.append(connect_path)
+
+
 from unittest.mock import Mock
 
 import pytest
@@ -6,6 +17,7 @@ from unm_raystation.release.processing_export import (
     AnonymizationSettings,
     DCMExportDestination,
     DicomSCP,
+    main,
 )
 
 
@@ -175,3 +187,7 @@ def test_get_export_kwargs(valid_title_export_destination):
             "RetainSafePrivateAttributes": False,
         },
     }
+
+
+def test_main():
+    main()

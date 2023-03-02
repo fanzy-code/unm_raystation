@@ -168,12 +168,12 @@ class DCMExportDestination:
             "Name": self.name,
             "Connection": self.Connection,
             "Export Folder": self.ExportFolderPath,
-            "(Active) CT": self.Active_CT,
-            "(Active) RT Structure Set": self.RtStructureSet_from_Active_CT,
-            "(Active) RT Plan": self.ActiveRTPlan,
-            "(Active) RT Dose w/ hetereogeneity corrections": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
-            "(Active) Treatment Beam DRRs": self.TxBeam_DRRs,
-            "(Active) Setup Beam DRRs": self.SetupBeam_DRRs,
+            "CT": self.Active_CT,
+            "RT Structure Set": self.RtStructureSet_from_Active_CT,
+            "RT Plan": self.Active_RTPlan,
+            "RT Dose with hetereogeneity corrections": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
+            "Treatment Beam DRRs": self.TxBeam_DRRs,
+            "Setup Beam DRRs": self.SetupBeam_DRRs,
         }
         return OrderedDict(display_dictionary)
 
@@ -330,13 +330,6 @@ dcm_destinations = [
 
 
 class MyWindow(RayWindow):  # type: ignore
-    xaml = """
-    <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
-    Title="MainWindow" Height="450" Width="800">
-        {xaml_table}
-    </Window>
-    """
-
     def __init__(self, dcm_destinations):
         self.case: PyScriptObject = get_current_helper("Case")
         self.examination: PyScriptObject = get_current_helper("Examination")
@@ -349,23 +342,71 @@ class MyWindow(RayWindow):  # type: ignore
         self.display_table_headers = self.dcm_destinations[0].get_display_export_args().keys()
         self.display_number_rows = len(dcm_destinations)
 
+        # Initialize the XAML
+        xaml = """
+        <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+        Title="Export Destinations" Height="600" Width="800">
+        <Grid Margin="10,10,10,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            {xaml_description_table}
+            {xaml_data_table}
+        </Grid>
+        </Window>
+        """
+
         # Make some modifications to XAML
 
         # Get the xaml_table by using self properties
-        xaml_table = self.initialize_xaml_table(
+        xaml_description_table = self.initialize_xaml_description_table()
+
+        xaml_data_table = self.initialize_xaml_data_table(
             self.display_table_headers, self.display_number_rows
         )
 
         # Modify the xaml code
-        self.xaml = self.xaml.format(xaml_table)
+        modified_xaml = xaml.format(
+            xaml_description_table=xaml_description_table, xaml_data_table=xaml_data_table
+        )
+
+        print(modified_xaml)
 
         # Load the modified xaml code
-        self.LoadComponent(self.xaml)
+        self.LoadComponent(modified_xaml)
 
-    def initialize_xaml_table(self, table_headers, number_of_rows):
+    def initialize_xaml_description_table(self):
+        xaml_description_table = """"""
+        xaml_description_table = """
+        <Grid Grid.Row="0" Margin="10,10,10,10">        
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="125"/>
+                <ColumnDefinition Width="125"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+                <TextBlock FontSize="12" FontWeight="Bold" Grid.Row="0" Grid.Column="0" Text="Case Name" TextWrapping="Wrap"/>
+                <TextBlock FontSize="12" FontWeight="Bold" Grid.Row="1" Grid.Column="0" Text="Exam Name" TextWrapping="Wrap"/>
+                <TextBlock FontSize="12" FontWeight="Bold" Grid.Row="2" Grid.Column="0" Text="Beam Set Name" TextWrapping="Wrap"/>
+                <TextBlock FontSize="12" Grid.Row="0" Grid.Column="1" Text="{case_name}" TextWrapping="Wrap"/>
+                <TextBlock FontSize="12" Grid.Row="1" Grid.Column="1" Text="{exam_name}" TextWrapping="Wrap"/>
+                <TextBlock FontSize="12" Grid.Row="2" Grid.Column="1" Text="{beam_set_name}" TextWrapping="Wrap"/>
+        </Grid>
+        """.format(
+            case_name=self.case.CaseName,
+            exam_name=self.examination.Name,
+            beam_set_name=self.beam_set.BeamSetIdentifier(),
+        )
+        return xaml_description_table
+
+    def initialize_xaml_data_table(self, table_headers, number_of_rows):
         # Defines the starting point of XAML table
-        xaml_table = """
-        <Grid>        
+        xaml_data_table = """
+        <Grid Grid.Row="1" Margin="10,10,10,10">        
             <Grid.ColumnDefinitions>
                 {columns_definition_xaml}
             </Grid.ColumnDefinitions>
@@ -380,38 +421,39 @@ class MyWindow(RayWindow):  # type: ignore
         number_of_columns = len(table_headers)
         columns_definition_xaml = """"""
         for column_number in range(number_of_columns):
-            columns_definition_xaml += """<ColumnDefinition />"""
+            columns_definition_xaml += """<ColumnDefinition Width="125"/>\n"""
 
         rows_definition_xaml = """"""
         for row_number in range(number_of_rows):
-            rows_definition_xaml += """<RowDefinition Height="30" />"""
+            rows_definition_xaml += """<RowDefinition Height="Auto" />\n"""
 
         headers_xaml = """"""
         for column_number, header in enumerate(table_headers):
-            headers_xaml += """<TextBlock FontSize="16" FontWeight="Bold" Grid.Row="0" Grid.Column="{column_number}"    
-                   Text="{header}" />""".format(
+            headers_xaml += """<TextBlock FontSize="12" FontWeight="Bold" Grid.Row="0" Grid.Column="{column_number}" Text="{header}" TextWrapping="Wrap"/>\n""".format(
                 column_number=column_number, header=header
             )
 
         rows_xaml = """"""
 
-        xaml_table.format(
+        xaml_data_table = xaml_data_table.format(
             columns_definition_xaml=columns_definition_xaml,
             rows_definition_xaml=rows_definition_xaml,
             headers_xaml=headers_xaml,
             rows_xaml=rows_xaml,
         )
 
-        return xaml_table
+        return xaml_data_table
 
 
 def main():
-    window = MyWindow()
+    window = MyWindow(dcm_destinations)
     window.ShowDialog()
 
     # run the GUI to list all the export destinations in a row
 
     # for loop export ideally
+
+    pass
 
 
 if __name__ == "__main__":
