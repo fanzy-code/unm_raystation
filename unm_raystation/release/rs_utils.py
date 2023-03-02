@@ -60,7 +60,7 @@ def get_current_helper(input: str) -> PyScriptObject:
     Added error logging and messaging.
 
     Args:
-        input (str): Supported inputs are "Patient", "Case", "Plan", "BeamSet", "Examination", "PatientDB", "MachineDB"
+        input (str): Supported inputs are "Patient", "Case", "Plan", "BeamSet", "Examination", "PatientDB", "MachineDB", "ClinicDB"
 
     Returns:
         PyScriptObject: The called class object
@@ -74,6 +74,7 @@ def get_current_helper(input: str) -> PyScriptObject:
         "Examination",
         "PatientDB",
         "MachineDB",
+        "ClinicDB",
     ]
 
     if input not in supported_types:

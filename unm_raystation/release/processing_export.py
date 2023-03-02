@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 import System  # type: ignore
-from connect import *
-from rs_utils import get_current_helper, raise_error
+from connect import *  # type: ignore
+from rs_utils import get_current_helper, raise_error  # type: ignore
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
@@ -173,17 +173,23 @@ class DCMExportDestination:
         # RtStructureSet_from_Active_CT, Active_RTPlan,
         # RTDose_for_active_BeamSet_with_hetereogeneity_correction, TxBeam_DRRs, SetupBeam_DRRs
 
+        # dict{
+        # attribute_name : {'xaml_display': 'Display friendly name', 'xaml_name': 'blah', 'xaml_value': self.name}
+        # 
+        # }
+
         display_dictionary = {
-            "Name": self.name,
-            "Connection": self.Connection,
-            "Export_Folder": self.ExportFolderPath,
-            "CT": self.Active_CT,
-            "RT_Structure_Set": self.RtStructureSet_from_Active_CT,
-            "RT_Plan": self.Active_RTPlan,
-            "RT_Dose": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
-            "Treatment_Beam_DRRs": self.TxBeam_DRRs,
-            "Setup_Beam_DRRs": self.SetupBeam_DRRs,
+            "name": {'xaml_display': 'Name', 'xaml_name': f'{self.name}_name', 'xaml_value': self.name},
+            "Connection": {'xaml_display': 'DICOM Destination', 'xaml_name': f'{self.name}_Connection', 'xaml_value': self.Connection},
+            "ExportFolderPath": {'xaml_display': 'Export Folder Path', 'xaml_name': f'{self.name}_ExportFolderPath', 'xaml_value': self.ExportFolderPath},
+            "Active_CT": {'xaml_display': 'Active CT', 'xaml_name': f'{self.name}_Active_CT', 'xaml_value': self.Active_CT},
+            "RtStructureSet_from_Active_CT": {'xaml_display': 'RT Structure Set from Active CT', 'xaml_name': f'{self.name}_RtStructureSet_from_Active_CT', 'xaml_value': self.RtStructureSet_from_Active_CT},
+            "Active_RTPlan": {'xaml_display': 'Active RT Plan', 'xaml_name': f'{self.name}_Active_RTPlan', 'xaml_value': self.Active_RTPlan},
+            "RTDose_for_active_BeamSet_with_hetereogeneity_correction": {'xaml_display': 'RT Dose for Active BeamSet with Hetereogeneity Correction', 'xaml_name': f'{self.name}_RTDose_for_active_BeamSet_with_hetereogeneity_correction', 'xaml_value': self.RTDose_for_active_BeamSet_with_hetereogeneity_correction},
+            "TxBeam_DRRs": {'xaml_display': 'Tx Beam DRRs', 'xaml_name': f'{self.name}_TxBeam_DRRs', 'xaml_value': self.TxBeam_DRRs},
+            "SetupBeam_DRRs": {'xaml_display': 'Setup Beam DRRs', 'xaml_name': f'{self.name}_SetupBeam_DRRs', 'xaml_value': self.SetupBeam_DRRs},
         }
+
         return OrderedDict(display_dictionary)
 
     def get_export_kwargs(self):
@@ -336,15 +342,24 @@ dcm_destinations = [
 
 class MyWindow(RayWindow):  # type: ignore
     def __init__(self, dcm_destinations):
-        self.case: PyScriptObject = get_current_helper("Case")
-        self.examination: PyScriptObject = get_current_helper("Examination")
-        self.beam_set: PyScriptObject = get_current_helper("BeamSet")
+        self.case: PyScriptObject = get_current_helper("Case")  # type: ignore
+        self.examination: PyScriptObject = get_current_helper("Examination")  # type: ignore
+        self.beam_set: PyScriptObject = get_current_helper("BeamSet")  # type: ignore
         self.kwargs: dict = {"machine_name": self.beam_set.MachineReference.MachineName}
 
         self.dcm_destinations: list[DCMExportDestination] = [
             dcm_destination.update_with_kwargs(**self.kwargs)
             for dcm_destination in dcm_destinations
         ]
+
+        # D
+        # names_seen = set()
+        # for dcm_destination in self.dcm_destinations:
+        #     if dcm_destination.name in names_seen:
+        #         raise ValueError(f"Duplicate name found: {dcm_destination.name}")
+        #     names_seen.add(dcm_destination.name)
+        #     updated_dcm_destination = dcm_destination.update_with_kwargs(**self.kwargs)
+        #     self.dcm_destinations.append(updated_dcm_destination)
 
         # Get display headers, cannot fail because dcm_destinations cannot be None
         self.display_table_headers = self.dcm_destinations[0].get_display_export_args().keys()
@@ -426,19 +441,19 @@ class MyWindow(RayWindow):  # type: ignore
         for row_count, xaml_dcm_destination in enumerate(
             xaml_dcm_destinations, start=1
         ):  # row_count = 0 is for table headers
-            for column_count, (key, value) in enumerate(xaml_dcm_destination.items()):
-                if isinstance(value, (str, DicomSCP)):
+            for column_count, (xaml_key, xaml_value) in enumerate(xaml_dcm_destination.items()):
+                if isinstance(xaml_value, (str, DicomSCP)):
                     xaml_table_rows += """<TextBlock FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap" Padding="3"/>\n""".format(
-                        row_count=row_count, column_count=column_count, value=value
+                        row_count=row_count, column_count=column_count, value=xaml_value
                     )
-                elif isinstance(value, bool):
-                    xaml_table_rows += """<CheckBox Name="{key}" IsChecked="{value}" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="{row_count}" Grid.Column="{column_count}" FontSize="14" Padding="3"/>\n""".format(
+                elif isinstance(xaml_value, bool):
+                    xaml_table_rows += """<CheckBox Name="{xaml_key}" IsChecked="{xaml_value}" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="{row_count}" Grid.Column="{column_count}" FontSize="14" Padding="3"/>\n""".format(
                         row_count=row_count,
                         column_count=column_count,
-                        key=key,
-                        value=str(value),
+                        xaml_key=xaml_key,
+                        xaml_value=str(xaml_value),
                     )
-                elif value is None:
+                elif xaml_value is None:
                     xaml_table_rows += """"""
         return xaml_table_rows
 
