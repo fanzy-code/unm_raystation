@@ -28,13 +28,13 @@ import sys
 import unicodedata
 import warnings
 from pathlib import Path
-from typing import Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import pydicom as dicom
 from connect import PyScriptObject, get_current  # type: ignore
 
 
-def raise_error(error_message: str, rs_exception_error) -> None:
+def raise_error(error_message: str, rs_exception_error: Any) -> None:
     """
     RayStation API exception errors are not callable with custom messages.
     This function overrides passed rs_exception_error with a generic callable exception error.

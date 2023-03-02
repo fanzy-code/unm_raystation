@@ -9,9 +9,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 import System  # type: ignore
-from connect import *  # type: ignore
-from rs_utils import raise_error  # type: ignore
-from rs_utils import get_current_helper
+from connect import *
+from rs_utils import get_current_helper, raise_error
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
@@ -49,7 +48,7 @@ class DicomSCP:
             # Query for allowed titles in ClinicDB
             if not (self._allowed_titles):
                 try:
-                    _clinic_db = get_current("ClinicDB")
+                    _clinic_db = get_current_helper("ClinicDB")
                     self._allowed_titles = [
                         AE.Title
                         for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
