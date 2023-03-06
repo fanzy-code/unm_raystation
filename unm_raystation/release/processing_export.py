@@ -408,9 +408,19 @@ class MyWindow(RayWindow):  # type: ignore
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             {xaml_table_description}
             {xaml_table}
+            <Grid Grid.Row="2" Margin="15,15,15,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Width="50" Height="25" Name="submit" Click="SubmitClicked" Content="Submit" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button Width="50" Height="25" Name="cancel" Click="CancelClicked" Content="Cancel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,25,0"/>
+
+            </Grid>
         </Grid>
         </Window>
         """
@@ -427,10 +437,14 @@ class MyWindow(RayWindow):  # type: ignore
             xaml_table_description=xaml_table_description, xaml_table=xaml_table
         )
 
-        print(modified_xaml)
-
         # Load the modified xaml code
         self.LoadComponent(modified_xaml)
+
+        # Set window as topmost window.
+        self.Topmost = True
+
+        # Start up window at the center of the screen. WindowStartUpLocation comes from RayStation System Package
+        self.WindowStartupLocation = WindowStartupLocation.CenterScreen  # type: ignore
 
     def initialize_xaml_table_description(self):
         xaml_table_description = """
@@ -555,12 +569,25 @@ class MyWindow(RayWindow):  # type: ignore
                         xaml_property.IsChecked,
                     )
 
+    def CancelClicked(self, sender, event):
+        # Close window.
+        self.DialogResult = False
+
+    def SubmitClicked(self, sender, event):
+        try:
+            self.get_and_set_updated_attributes_from_xaml()
+        except Exception as error:
+            logging.exception(error)
+            error_message = f"Invalid input."
+            raise_error(ErrorMessage=error_message, ExceptionError=error)
+
+        self.DialogResult = True
+
 
 def main():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
     window.get_and_set_updated_attributes_from_xaml()
-    print(window.dcm_destinations)
 
 
 if __name__ == "__main__":
