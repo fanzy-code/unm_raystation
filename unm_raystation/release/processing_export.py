@@ -168,29 +168,63 @@ class DCMExportDestination:
             self.ExportFolderPath = self.ExportFolderPath.format(**kwargs)
         return self
 
-    def get_display_export_args(self):
-        # ordered list of Name, Connection, ExportFolderPath, Active_CT,
-        # RtStructureSet_from_Active_CT, Active_RTPlan,
-        # RTDose_for_active_BeamSet_with_hetereogeneity_correction, TxBeam_DRRs, SetupBeam_DRRs
+    def generate_xaml_attribute_dict(self):
+        """
+        Generates dictionary with key = class attribute name and dictionary of xaml related values
 
-        # dict{
-        # attribute_name : {'xaml_display': 'Display friendly name', 'xaml_name': 'blah', 'xaml_value': self.name}
-        # 
-        # }
+        Returns:
+            _type_: _description_
+        """
 
-        display_dictionary = {
-            "name": {'xaml_display': 'Name', 'xaml_name': f'{self.name}_name', 'xaml_value': self.name},
-            "Connection": {'xaml_display': 'DICOM Destination', 'xaml_name': f'{self.name}_Connection', 'xaml_value': self.Connection},
-            "ExportFolderPath": {'xaml_display': 'Export Folder Path', 'xaml_name': f'{self.name}_ExportFolderPath', 'xaml_value': self.ExportFolderPath},
-            "Active_CT": {'xaml_display': 'Active CT', 'xaml_name': f'{self.name}_Active_CT', 'xaml_value': self.Active_CT},
-            "RtStructureSet_from_Active_CT": {'xaml_display': 'RT Structure Set from Active CT', 'xaml_name': f'{self.name}_RtStructureSet_from_Active_CT', 'xaml_value': self.RtStructureSet_from_Active_CT},
-            "Active_RTPlan": {'xaml_display': 'Active RT Plan', 'xaml_name': f'{self.name}_Active_RTPlan', 'xaml_value': self.Active_RTPlan},
-            "RTDose_for_active_BeamSet_with_hetereogeneity_correction": {'xaml_display': 'RT Dose for Active BeamSet with Hetereogeneity Correction', 'xaml_name': f'{self.name}_RTDose_for_active_BeamSet_with_hetereogeneity_correction', 'xaml_value': self.RTDose_for_active_BeamSet_with_hetereogeneity_correction},
-            "TxBeam_DRRs": {'xaml_display': 'Tx Beam DRRs', 'xaml_name': f'{self.name}_TxBeam_DRRs', 'xaml_value': self.TxBeam_DRRs},
-            "SetupBeam_DRRs": {'xaml_display': 'Setup Beam DRRs', 'xaml_name': f'{self.name}_SetupBeam_DRRs', 'xaml_value': self.SetupBeam_DRRs},
+        xaml_dict = {
+            "name": {
+                "xaml_display": "Name",
+                "xaml_name": f"{self.name}_name",
+                "xaml_value": self.name,
+            },
+            "Connection": {
+                "xaml_display": "DICOM Destination",
+                "xaml_name": f"{self.name}_Connection",
+                "xaml_value": self.Connection,
+            },
+            "ExportFolderPath": {
+                "xaml_display": "Export Folder Path",
+                "xaml_name": f"{self.name}_ExportFolderPath",
+                "xaml_value": self.ExportFolderPath,
+            },
+            "Active_CT": {
+                "xaml_display": "Active CT",
+                "xaml_name": f"{self.name}_Active_CT",
+                "xaml_value": self.Active_CT,
+            },
+            "RtStructureSet_from_Active_CT": {
+                "xaml_display": "RT Structure Set",
+                "xaml_name": f"{self.name}_RtStructureSet_from_Active_CT",
+                "xaml_value": self.RtStructureSet_from_Active_CT,
+            },
+            "Active_RTPlan": {
+                "xaml_display": "RT Plan",
+                "xaml_name": f"{self.name}_Active_RTPlan",
+                "xaml_value": self.Active_RTPlan,
+            },
+            "RTDose_for_active_BeamSet_with_hetereogeneity_correction": {
+                "xaml_display": "RT Dose",
+                "xaml_name": f"{self.name}_RTDose_for_active_BeamSet_with_hetereogeneity_correction",
+                "xaml_value": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
+            },
+            "TxBeam_DRRs": {
+                "xaml_display": "Tx Beam DRRs",
+                "xaml_name": f"{self.name}_TxBeam_DRRs",
+                "xaml_value": self.TxBeam_DRRs,
+            },
+            "SetupBeam_DRRs": {
+                "xaml_display": "Setup Beam DRRs",
+                "xaml_name": f"{self.name}_SetupBeam_DRRs",
+                "xaml_value": self.SetupBeam_DRRs,
+            },
         }
 
-        return OrderedDict(display_dictionary)
+        return OrderedDict(xaml_dict)
 
     def get_export_kwargs(self):
         # Prepares the export kwargs dictionary for ScriptableDicomExport function
@@ -352,17 +386,18 @@ class MyWindow(RayWindow):  # type: ignore
             for dcm_destination in dcm_destinations
         ]
 
-        # D
-        # names_seen = set()
-        # for dcm_destination in self.dcm_destinations:
-        #     if dcm_destination.name in names_seen:
-        #         raise ValueError(f"Duplicate name found: {dcm_destination.name}")
-        #     names_seen.add(dcm_destination.name)
-        #     updated_dcm_destination = dcm_destination.update_with_kwargs(**self.kwargs)
-        #     self.dcm_destinations.append(updated_dcm_destination)
+        # Error check for dcm_destinations of same name
+        names_seen = set()
+        for dcm_destination in self.dcm_destinations:
+            if dcm_destination.name in names_seen:
+                raise ValueError(f"Duplicate name found: {dcm_destination.name}")
+            names_seen.add(dcm_destination.name)
 
         # Get display headers, cannot fail because dcm_destinations cannot be None
-        self.display_table_headers = self.dcm_destinations[0].get_display_export_args().keys()
+        self.display_table_headers = [
+            value_dict["xaml_display"]
+            for key, value_dict in self.dcm_destinations[0].generate_xaml_attribute_dict().items()
+        ]
         self.display_number_rows = len(dcm_destinations)
 
         # Initialize the XAML
@@ -397,18 +432,6 @@ class MyWindow(RayWindow):  # type: ignore
         # Load the modified xaml code
         self.LoadComponent(modified_xaml)
 
-    def get_xaml_dcm_destinations(self):
-        xaml_dcm_destinations = []
-        for dcm_destination in self.dcm_destinations:
-            xaml_dcm_destination = {}
-            dcm_destination_display_dictionary = dcm_destination.get_display_export_args()
-            for key, value in dcm_destination_display_dictionary.items():
-                xaml_key = dcm_destination.name + "_" + key
-                xaml_value = value
-                xaml_dcm_destination.update({xaml_key: xaml_value})
-            xaml_dcm_destinations.append(xaml_dcm_destination)
-        return xaml_dcm_destinations
-
     def initialize_xaml_table_description(self):
         xaml_table_description = """
         <Grid Grid.Row="0" Margin="15,15,15,15">        
@@ -435,23 +458,33 @@ class MyWindow(RayWindow):  # type: ignore
         )
         return xaml_table_description
 
-    def get_xaml_table_row(self):
-        xaml_dcm_destinations = self.get_xaml_dcm_destinations()
+    def get_xaml_table_row_data(self):
+        xaml_dcm_destinations = [
+            dcm_destination.generate_xaml_attribute_dict()
+            for dcm_destination in self.dcm_destinations
+        ]
         xaml_table_rows = """"""
         for row_count, xaml_dcm_destination in enumerate(
             xaml_dcm_destinations, start=1
         ):  # row_count = 0 is for table headers
-            for column_count, (xaml_key, xaml_value) in enumerate(xaml_dcm_destination.items()):
+            for column_count, (class_variable_key, xaml_property_dict) in enumerate(
+                xaml_dcm_destination.items()
+            ):
+                xaml_name = xaml_property_dict["xaml_name"]
+                xaml_value = xaml_property_dict["xaml_value"]
                 if isinstance(xaml_value, (str, DicomSCP)):
-                    xaml_table_rows += """<TextBlock FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap" Padding="3"/>\n""".format(
-                        row_count=row_count, column_count=column_count, value=xaml_value
-                    )
-                elif isinstance(xaml_value, bool):
-                    xaml_table_rows += """<CheckBox Name="{xaml_key}" IsChecked="{xaml_value}" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="{row_count}" Grid.Column="{column_count}" FontSize="14" Padding="3"/>\n""".format(
+                    xaml_table_rows += """<TextBlock Name="{xaml_name}" FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap" Padding="3"/>\n""".format(
                         row_count=row_count,
                         column_count=column_count,
-                        xaml_key=xaml_key,
-                        xaml_value=str(xaml_value),
+                        xaml_name=xaml_name,
+                        value=xaml_value,
+                    )
+                elif isinstance(xaml_value, bool):
+                    xaml_table_rows += """<CheckBox Name="{xaml_name}" IsChecked="{xaml_value}" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="{row_count}" Grid.Column="{column_count}" FontSize="14" Padding="3"/>\n""".format(
+                        row_count=row_count,
+                        column_count=column_count,
+                        xaml_name=xaml_name,
+                        xaml_value=xaml_value,
                     )
                 elif xaml_value is None:
                     xaml_table_rows += """"""
@@ -494,7 +527,7 @@ class MyWindow(RayWindow):  # type: ignore
             )
 
         # xaml_table_rows
-        xaml_table_rows = self.get_xaml_table_row()
+        xaml_table_rows = self.get_xaml_table_row_data()
 
         xaml_table = xaml_table.format(
             xaml_column_definitions=xaml_column_definitions,
@@ -505,14 +538,29 @@ class MyWindow(RayWindow):  # type: ignore
 
         return xaml_table
 
+    def get_and_set_updated_attributes_from_xaml(self):
+        current_xaml_dcm_destinations = [
+            dcm_destination.generate_xaml_attribute_dict()
+            for dcm_destination in self.dcm_destinations
+        ]
+
+        for index, xaml_dcm_destination in enumerate(current_xaml_dcm_destinations):
+            for class_variable_key, xaml_property_dict in xaml_dcm_destination.items():
+                xaml_name = xaml_property_dict["xaml_name"]
+                xaml_property = getattr(self, xaml_property_dict["xaml_name"], None)
+                if isinstance(xaml_property, System.Windows.Controls.CheckBox):
+                    setattr(
+                        self.dcm_destinations[index],
+                        class_variable_key,
+                        xaml_property.IsChecked,
+                    )
+
 
 def main():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
-
-    # for loop export ideally
-
-    pass
+    window.get_and_set_updated_attributes_from_xaml()
+    print(window.dcm_destinations)
 
 
 if __name__ == "__main__":
