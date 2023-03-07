@@ -322,6 +322,9 @@ class DCMExportDestination:
         except Exception as error:
             self.handle_log_errors(error)
 
+        # construct a string of what is happening during this process, completed for first try-except, incomplete for last bit
+        # pass errors in a dictionary perhaps
+
         return
 
 
@@ -570,7 +573,8 @@ class MyWindow(RayWindow):  # type: ignore
 
         # for loop through the dcm_destinations and run the export function
         for dcm_destination in self.dcm_destinations:
-            dcm_destination.export(self.case, self.examination, self.beam_set)
+            result = dcm_destination.export(self.case, self.examination, self.beam_set)
+            # pass result to a textblock renderer
 
         self.DialogResult = True
 
