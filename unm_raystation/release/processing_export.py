@@ -66,7 +66,7 @@ class DicomSCP:
 
 @dataclass
 class AnonymizationSettings:
-    anonymize: bool = False
+    Anonymize: bool = False
     AnonymizedName: str = "anonymizedName"
     AnonymizedID: str = "anonymizedID"
     RetainDates: bool = False
@@ -261,7 +261,7 @@ class DCMExportDestination:
         if beam_set is None:
             raise ValueError("No beam set provided")
 
-        # Set export arguments for dicom objects needed
+        # Hashmap for class attribute variables to export arguments needed for export
         settings_to_export_arguments = {
             "Active_CT": {"_Examinations": [examination.Name]},
             "RtStructureSet_from_Active_CT": {
@@ -300,21 +300,8 @@ class DCMExportDestination:
             raise_error(f"Error reading completion message.", error)
 
     def handle_log_warnings(self, error):
-        try:
-            jsonWarnings = json.loads(str(error))
-            # If the json.loads() works then the script was stopped due to
-            # a non-blocking warning.
-            print("WARNING! Export Aborted!")
-            print("Comment:")
-            print(jsonWarnings["Comment"])
-            print("Warnings:")
-
-            # Here the user can handle the warnings. Continue on known warnings,
-            # stop on unknown warnings.
-            for w in jsonWarnings["Warnings"]:
-                print(w)
-        except ValueError as error:
-            raise_error(f"DICOM export unsuccessful.  Error reading warning message.", error)
+        print(f"Raw log warnings string: {error}")
+        return
 
     def handle_log_errors(self, error):
         raise_error(f"Error exporting DICOM", error)
@@ -339,34 +326,34 @@ class DCMExportDestination:
 
 
 dcm_destinations = [
-    DCMExportDestination(
-        name="MOSAIQ",
-        Connection=DicomSCP(Title="MOSAIQ"),
-        Active_CT=True,
-        RtStructureSet_from_Active_CT=True,
-        Active_RTPlan=True,
-        TxBeam_DRRs=True,
-        SetupBeam_DRRs=True,
-    ),
-    DCMExportDestination(
-        name="SunCheck",
-        Connection=DicomSCP(Title="SunCheck"),
-        Active_CT=True,
-        RtStructureSet_from_Active_CT=True,
-        Active_RTPlan=True,
-        RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
-    ),
-    DCMExportDestination(
-        name="Velocity",
-        Connection=DicomSCP(Title="Velocity"),
-        Active_CT=True,
-        RtStructureSet_from_Active_CT=True,
-        Active_RTPlan=True,
-        RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
-    ),
+    # DCMExportDestination(
+    #     name="MOSAIQ",
+    #     Connection=DicomSCP(Title="MOSAIQ"),
+    #     Active_CT=True,
+    #     RtStructureSet_from_Active_CT=True,
+    #     Active_RTPlan=True,
+    #     TxBeam_DRRs=True,
+    #     SetupBeam_DRRs=True,
+    # ),
+    # DCMExportDestination(
+    #     name="SunCheck",
+    #     Connection=DicomSCP(Title="SunCheck"),
+    #     Active_CT=True,
+    #     RtStructureSet_from_Active_CT=True,
+    #     Active_RTPlan=True,
+    #     RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
+    # ),
+    # DCMExportDestination(
+    #     name="Velocity",
+    #     Connection=DicomSCP(Title="Velocity"),
+    #     Active_CT=True,
+    #     RtStructureSet_from_Active_CT=True,
+    #     Active_RTPlan=True,
+    #     RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
+    # ),
     DCMExportDestination(
         name="CRAD",
-        ExportFolderPath="\hsc-cc-crad\CRAD Patients\{machine_name}",
+        ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
         Active_CT=True,
         RtStructureSet_from_Active_CT=True,
         Active_RTPlan=True,
@@ -581,13 +568,16 @@ class MyWindow(RayWindow):  # type: ignore
             error_message = f"Invalid input."
             raise_error(ErrorMessage=error_message, ExceptionError=error)
 
+        # for loop through the dcm_destinations and run the export function
+        for dcm_destination in self.dcm_destinations:
+            dcm_destination.export(self.case, self.examination, self.beam_set)
+
         self.DialogResult = True
 
 
 def main():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
-    window.get_and_set_updated_attributes_from_xaml()
 
 
 if __name__ == "__main__":
