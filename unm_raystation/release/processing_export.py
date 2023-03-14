@@ -1,7 +1,26 @@
 """
-Script to export plans to multiple locations
-"""
+    processing_export script to send various DICOM data to multiple locations
 
+    Features:
+
+    Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, RT Dose Sum/Beam, DRRs
+    Dynamic ExportFolder names, for machine specific folders
+    GUI with toggle-able options for changing what needs to be sent
+    User feedback for status of exports: Completed or Error
+    Full report log for end result
+
+    TODO:
+    RTDose_sum_for_active_BeamSet rename to Active_BeamSet_Dose, xaml display name to be BeamSet Dose
+    RTDose_beam_for_active_BeamSet rename to Active_Beam_Dose, xaml display name to be Beam Dose
+
+
+"""
+__author__ = "Michael Fan"
+__contact__ = "mfan1@unmmg.org"
+__version__ = "0.1.1"
+__license__ = "MIT"
+
+import html
 import json
 import logging
 from collections import OrderedDict
@@ -10,7 +29,7 @@ from typing import List, Optional
 
 import System  # type: ignore
 from connect import *  # type: ignore
-from rs_utils import get_current_helper, raise_error  # type: ignore
+from rs_utils import get_current_helper, raise_error, save_patient  # type: ignore
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
@@ -113,14 +132,25 @@ class DCMExportDestination:
         List[str]
     ] = None  # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Not supported; for no tissue hetereogeneity
+    # Supported
+    RTDose_sum_for_active_BeamSet: bool = False
     _PhysicalBeamSetDoseForBeamSets: Optional[
         List[str]
     ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
-    # Supported; dose calculated with tissue hetereogeneity
-    RTDose_for_active_BeamSet_with_hetereogeneity_correction: bool = False
+    # Not Supported; dose calculated with tissue hetereogeneity
     _EffectiveBeamSetDoseForBeamSets: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+
+    # Supported
+    RTDose_beam_for_active_BeamSet: bool = False
+    _PhysicalBeamDosesForBeamSets: Optional[
+        List[str]
+    ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
+
+    # Not Supported; beam doses calculated with tissue hetereogeneity
+    _EffectiveBeamDosesForBeamSets: Optional[
         List[str]
     ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
@@ -207,10 +237,15 @@ class DCMExportDestination:
                 "xaml_name": f"{self.name}_Active_RTPlan",
                 "xaml_value": self.Active_RTPlan,
             },
-            "RTDose_for_active_BeamSet_with_hetereogeneity_correction": {
-                "xaml_display": "RT Dose",
-                "xaml_name": f"{self.name}_RTDose_for_active_BeamSet_with_hetereogeneity_correction",
-                "xaml_value": self.RTDose_for_active_BeamSet_with_hetereogeneity_correction,
+            "RTDose_sum_for_active_BeamSet": {
+                "xaml_display": "RT Dose Sum",
+                "xaml_name": f"{self.name}_RTDose_sum_for_active_BeamSet",
+                "xaml_value": self.RTDose_sum_for_active_BeamSet,
+            },
+            "RTDose_beam_for_active_BeamSet": {
+                "xaml_display": "RT Dose Beams",
+                "xaml_name": f"{self.name}_RTDose_beam_for_active_BeamSet",
+                "xaml_value": self.RTDose_beam_for_active_BeamSet,
             },
             "TxBeam_DRRs": {
                 "xaml_display": "Tx Beam DRRs",
@@ -268,92 +303,117 @@ class DCMExportDestination:
                 "_RtStructureSetsForExaminations": [examination.Name]
             },
             "Active_RTPlan": {"_BeamSets": [beam_set.BeamSetIdentifier()]},
-            "RTDose_for_active_BeamSet_with_hetereogeneity_correction": {
-                "_EffectiveBeamSetDoseForBeamSets": [beam_set.BeamSetIdentifier()]
+            "RTDose_sum_for_active_BeamSet": {
+                "_PhysicalBeamSetDoseForBeamSets": [beam_set.BeamSetIdentifier()]
+            },
+            "RTDose_beam_for_active_BeamSet": {
+                "_PhysicalBeamDosesForBeamSets": [beam_set.BeamSetIdentifier()]
             },
             "TxBeam_DRRs": {"_TreatmentBeamDrrImages": [beam_set.BeamSetIdentifier()]},
             "SetupBeam_DRRs": {"_SetupBeamDrrImages": [beam_set.BeamSetIdentifier()]},
         }
 
+        attr_was_set = []
         for attr, props in settings_to_export_arguments.items():
             if getattr(self, attr):
+                attr_was_set.append(attr)
                 for prop, value in props.items():
                     setattr(self, prop, value)
 
-        return
+        return attr_was_set
 
-    # Get rid of these print statements and put it in logging or something
-    def handle_log_completion(self, result):
+    def handle_result(self, result):
         try:
-            jsonWarnings = json.loads(str(result))
-            print("Completed!")
-            print("Comment:")
-            print(jsonWarnings["Comment"])
-            print("Warnings:")
-            for w in jsonWarnings["Warnings"]:
-                print(w)
-            print("Export notifications:")
-            # Export notifications is a list of notifications that the user should read.
-            for w in jsonWarnings["Notifications"]:
-                print(w)
+            json_string = json.loads(str(result))
+            comment_block: str = json_string["Comment"]
+            warnings: list[str] = json_string["Warnings"]
+            notifications: list[str] = json_string["Notifications"]
+
+            warnings_block = "\n".join(warnings)
+            notifications_block = "\n".join(notifications)
+
+            result = f"Comment:\n{comment_block}\n\nWarnings:\n{warnings_block}\n\nNotifications:\n{notifications_block}"
+
         except ValueError as error:
             raise_error(f"Error reading completion message.", error)
 
-    def handle_log_warnings(self, error):
-        print(f"Raw log warnings string: {error}")
-        return
+        return result
 
-    def handle_log_errors(self, error):
-        raise_error(f"Error exporting DICOM", error)
+    def generate_gui_message(self, success: bool, result=None):
+        log_message = ""
+        if success:
+            status_message = "COMPLETE"
+            log_message = f"{self.name} export... COMPLETE\n\n"
+        else:
+            status_message = "Error"
+            log_message = f"{self.name} export... Error\n\n"
+
+        if result:
+            log_message += self.handle_result(result)
+
+        # Add some new lines for next set of log messages
+        log_message += "\n\n\n"
+        return status_message, log_message
+
+    def handle_log_warnings(self, error):
+        logging.info(
+            f"Error exporting, changing to IgnorePreConditionWarnings = True.  Raw error variable string: {error}"
+        )
         return
 
     def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
-        self.set_export_arguments(examination, beam_set)
+        attr_was_set = self.set_export_arguments(examination, beam_set)
+        if not attr_was_set:
+            status_message = "SKIPPED"
+            log_message = f"{self.name} export... SKIPPED\n\n"
+            return status_message, log_message
+
         export_kwargs = self.get_export_kwargs()
 
         try:
             result = case.ScriptableDicomExport(**export_kwargs)
-            self.handle_log_completion(result)
+            status_message, log_message = self.generate_gui_message(success=True, result=result)
         except System.InvalidOperationException as error:
             self.handle_log_warnings(error)
             export_kwargs["IgnorePreConditionWarnings"] = True
             result = case.ScriptableDicomExport(**export_kwargs)
-            self.handle_log_completion(result)
+            status_message, log_message = self.generate_gui_message(success=True, result=result)
         except Exception as error:
-            self.handle_log_errors(error)
+            status_message, log_message = self.generate_gui_message(success=False)
+            logging.info(
+                f"Export incomplete, {error}"
+            )  # now sure how to pass this to generate_gui_message yet
 
-        # construct a string of what is happening during this process, completed for first try-except, incomplete for last bit
-        # pass errors in a dictionary perhaps
-
-        return
+        return status_message, log_message
 
 
 dcm_destinations = [
-    # DCMExportDestination(
-    #     name="MOSAIQ",
-    #     Connection=DicomSCP(Title="MOSAIQ"),
-    #     Active_CT=True,
-    #     RtStructureSet_from_Active_CT=True,
-    #     Active_RTPlan=True,
-    #     TxBeam_DRRs=True,
-    #     SetupBeam_DRRs=True,
-    # ),
-    # DCMExportDestination(
-    #     name="SunCheck",
-    #     Connection=DicomSCP(Title="SunCheck"),
-    #     Active_CT=True,
-    #     RtStructureSet_from_Active_CT=True,
-    #     Active_RTPlan=True,
-    #     RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
-    # ),
-    # DCMExportDestination(
-    #     name="Velocity",
-    #     Connection=DicomSCP(Title="Velocity"),
-    #     Active_CT=True,
-    #     RtStructureSet_from_Active_CT=True,
-    #     Active_RTPlan=True,
-    #     RTDose_for_active_BeamSet_with_hetereogeneity_correction=True,
-    # ),
+    DCMExportDestination(
+        name="MOSAIQ",
+        Connection=DicomSCP(Title="MOSAIQ"),
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        TxBeam_DRRs=True,
+        SetupBeam_DRRs=True,
+    ),
+    DCMExportDestination(
+        name="SunCheck",
+        Connection=DicomSCP(Title="SunCheck"),
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        RTDose_sum_for_active_BeamSet=True,
+        RTDose_beam_for_active_BeamSet=True,
+    ),
+    DCMExportDestination(
+        name="Velocity",
+        Connection=DicomSCP(Title="Velocity"),
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        RTDose_sum_for_active_BeamSet=True,
+    ),
     DCMExportDestination(
         name="CRAD",
         ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
@@ -366,10 +426,14 @@ dcm_destinations = [
 
 class MyWindow(RayWindow):  # type: ignore
     def __init__(self, dcm_destinations):
+        self.patient: PyScriptObject = get_current_helper("Patient")  # type: ignore
         self.case: PyScriptObject = get_current_helper("Case")  # type: ignore
         self.examination: PyScriptObject = get_current_helper("Examination")  # type: ignore
         self.beam_set: PyScriptObject = get_current_helper("BeamSet")  # type: ignore
         self.kwargs: dict = {"machine_name": self.beam_set.MachineReference.MachineName}
+
+        # Check for saving
+        save_patient(self.patient)
 
         self.dcm_destinations: list[DCMExportDestination] = [
             dcm_destination.update_with_kwargs(**self.kwargs)
@@ -393,11 +457,12 @@ class MyWindow(RayWindow):  # type: ignore
         # Initialize the XAML
         xaml = """
         <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
-        Title="Export Destinations" Height="400" Width="1230">
-        <Grid Margin="10,10,10,10">
+        Title="Export Destinations" Height="600" Width="1400">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="225" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             {xaml_table_description}
@@ -405,11 +470,14 @@ class MyWindow(RayWindow):  # type: ignore
             <Grid Grid.Row="2" Margin="15,15,15,15">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Button Width="50" Height="25" Name="submit" Click="SubmitClicked" Content="Submit" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <Button Width="50" Height="25" Name="cancel" Click="CancelClicked" Content="Cancel" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,25,0"/>
-
+                 <TextBox Name="log_message" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="10" TextWrapping="Wrap" Text="" ScrollViewer.VerticalScrollBarVisibility="Auto" Width="Auto" Height="Auto"/>
+            </Grid>
+            <Grid Grid.Row="3" Margin="15,15,15,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Width="50" Height="25" Name="cancel" Click="CancelClicked" Content="Close" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
         </Window>
@@ -426,7 +494,7 @@ class MyWindow(RayWindow):  # type: ignore
         modified_xaml = xaml.format(
             xaml_table_description=xaml_table_description, xaml_table=xaml_table
         )
-
+        print(modified_xaml)
         # Load the modified xaml code
         self.LoadComponent(modified_xaml)
 
@@ -437,6 +505,10 @@ class MyWindow(RayWindow):  # type: ignore
         self.WindowStartupLocation = WindowStartupLocation.CenterScreen  # type: ignore
 
     def initialize_xaml_table_description(self):
+        case_name = html.escape(self.case.CaseName)
+        exam_name = html.escape(self.examination.Name)
+        beam_set_name = html.escape(self.beam_set.BeamSetIdentifier())
+
         xaml_table_description = """
         <Grid Grid.Row="0" Margin="15,15,15,15">        
             <Grid.ColumnDefinitions>
@@ -456,9 +528,9 @@ class MyWindow(RayWindow):  # type: ignore
                 <TextBlock FontSize="12" Grid.Row="2" Grid.Column="1" Text="{beam_set_name}" TextWrapping="Wrap"/>
         </Grid>
         """.format(
-            case_name=self.case.CaseName,
-            exam_name=self.examination.Name,
-            beam_set_name=self.beam_set.BeamSetIdentifier(),
+            case_name=case_name,
+            exam_name=exam_name,
+            beam_set_name=beam_set_name,
         )
         return xaml_table_description
 
@@ -476,6 +548,8 @@ class MyWindow(RayWindow):  # type: ignore
             ):
                 xaml_name = xaml_property_dict["xaml_name"]
                 xaml_value = xaml_property_dict["xaml_value"]
+                if column_count == 0:
+                    xaml_status_name = xaml_name.replace("name", "status")
                 if isinstance(xaml_value, (str, DicomSCP)):
                     xaml_table_rows += """<TextBlock Name="{xaml_name}" FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="{value}" TextWrapping="Wrap" Padding="3"/>\n""".format(
                         row_count=row_count,
@@ -492,6 +566,12 @@ class MyWindow(RayWindow):  # type: ignore
                     )
                 elif xaml_value is None:
                     xaml_table_rows += """"""
+            # Add a final column for export status
+            xaml_table_rows += """<TextBlock Name="{xaml_name}" FontSize="12" Grid.Row="{row_count}" Grid.Column="{column_count}" Text="" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="3"/>\n""".format(
+                xaml_name=xaml_status_name,
+                row_count=row_count,
+                column_count=column_count + 1,
+            )
         return xaml_table_rows
 
     def initialize_xaml_table(self):
@@ -515,7 +595,7 @@ class MyWindow(RayWindow):  # type: ignore
         #  xaml_column_definitions
         number_of_columns = len(table_headers)
         xaml_column_definitions = """"""
-        for column_number in range(number_of_columns):
+        for column_number in range(number_of_columns + 1):
             xaml_column_definitions += """<ColumnDefinition />\n"""
 
         # xaml_row_definitions
@@ -529,6 +609,10 @@ class MyWindow(RayWindow):  # type: ignore
             xaml_table_headers += """<TextBlock FontSize="12" FontWeight="Bold" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="5" Grid.Column="{column_number}" Text="{header}" TextWrapping="Wrap"/>\n""".format(
                 column_number=column_number, header=header
             )
+        # Adding a submit button at the end
+        xaml_table_headers += """<Button Width="55" Height="25" Name="submit" Click="SubmitClicked" Content="Export" HorizontalAlignment="Center" Grid.Column="{column_number}" VerticalAlignment="Center" IsEnabled="True"/>\n""".format(
+            column_number=column_number + 1
+        )
 
         # xaml_table_rows
         xaml_table_rows = self.get_xaml_table_row_data()
@@ -571,12 +655,16 @@ class MyWindow(RayWindow):  # type: ignore
             error_message = f"Invalid input."
             raise_error(ErrorMessage=error_message, ExceptionError=error)
 
+        self.submit.IsEnabled = False
         # for loop through the dcm_destinations and run the export function
-        for dcm_destination in self.dcm_destinations:
-            result = dcm_destination.export(self.case, self.examination, self.beam_set)
-            # pass result to a textblock renderer
-
-        self.DialogResult = True
+        for row_count, dcm_destination in enumerate(self.dcm_destinations):
+            status_message, log_message = dcm_destination.export(
+                self.case, self.examination, self.beam_set
+            )
+            status_attribute_name = dcm_destination.name + "_status"
+            status_attribute = getattr(self, status_attribute_name)
+            status_attribute.Text = status_message
+            self.log_message.Text += log_message
 
 
 def main():

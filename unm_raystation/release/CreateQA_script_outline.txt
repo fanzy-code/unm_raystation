@@ -1,0 +1,24 @@
+API:
+file:///P:/DEPS/PHYSICS/Staff%20folders/MFan/RayStation_Scripting/API_Documentation/ScriptApiHtmlDoc_11.0.1/clinical_scripting_api.html
+
+get_current_helper for beam_set
+get_current_helper for plan
+
+current QA plans can be accessed using:
+plan.VerificationPlans
+
+make a base_QA_Plan_Name variable
+query current QAPlanNames, do a duplication check (set test)
+append "_num" suffix until proposed qa plan name works (Lung_1, Lung_2, etc.)
+
+
+beam_set.CreateQAPlan(
+PhantomName = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
+PhantomId = 'SNC_ArcCheck'
+Isocenter = {'x':0, 'y': 0.05, 'z': 0}
+DoseGrid = {'x':0.25, 'y': 0.25, 'z': 0.25}  <-- this might have to be from the current plan, use beam_set.FractionDose.InDoseGrid.VoxelSize
+GantryAngle = None
+CollimatorAngle = None
+CouchRotationAngle = 0
+ComputeDoseWhenPlanIsCreated = True
+)
