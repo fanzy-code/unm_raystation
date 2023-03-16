@@ -623,7 +623,7 @@ class DCMExportDestination:
     ] = None  # CK only: Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
     # Supported
-    RTDose_sum_for_active_BeamSet: bool = False
+    Active_BeamSet_Dose: bool = False
     _PhysicalBeamSetDoseForBeamSets: Optional[
         List[str]
     ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
@@ -634,7 +634,7 @@ class DCMExportDestination:
     ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
 
     # Supported
-    RTDose_beam_for_active_BeamSet: bool = False
+    Active_BeamSet_BeamDose: bool = False
     _PhysicalBeamDosesForBeamSets: Optional[
         List[str]
     ] = None  # Example ["%s:%s"%(plan.Name, beam_set.DicomPlanLabel)] or [beam_set.BeamSetIdentifier()]
@@ -727,15 +727,15 @@ class DCMExportDestination:
                 "xaml_name": f"{self.name}_Active_RTPlan",
                 "xaml_value": self.Active_RTPlan,
             },
-            "RTDose_sum_for_active_BeamSet": {
-                "xaml_display": "RT Dose Sum",
-                "xaml_name": f"{self.name}_RTDose_sum_for_active_BeamSet",
-                "xaml_value": self.RTDose_sum_for_active_BeamSet,
+            "Active_BeamSet_Dose": {
+                "xaml_display": "BeamSet Dose",
+                "xaml_name": f"{self.name}_Active_BeamSet_Dose",
+                "xaml_value": self.Active_BeamSet_Dose,
             },
-            "RTDose_beam_for_active_BeamSet": {
-                "xaml_display": "RT Dose Beams",
-                "xaml_name": f"{self.name}_RTDose_beam_for_active_BeamSet",
-                "xaml_value": self.RTDose_beam_for_active_BeamSet,
+            "Active_BeamSet_BeamDose": {
+                "xaml_display": "BeamSet Beam Dose",
+                "xaml_name": f"{self.name}_Active_BeamSet_BeamDose",
+                "xaml_value": self.Active_BeamSet_BeamDose,
             },
             "TxBeam_DRRs": {
                 "xaml_display": "Tx Beam DRRs",
@@ -793,10 +793,10 @@ class DCMExportDestination:
                 "_RtStructureSetsForExaminations": [examination.Name]
             },
             "Active_RTPlan": {"_BeamSets": [beam_set.BeamSetIdentifier()]},
-            "RTDose_sum_for_active_BeamSet": {
+            "Active_BeamSet_Dose": {
                 "_PhysicalBeamSetDoseForBeamSets": [beam_set.BeamSetIdentifier()]
             },
-            "RTDose_beam_for_active_BeamSet": {
+            "Active_BeamSet_BeamDose": {
                 "_PhysicalBeamDosesForBeamSets": [beam_set.BeamSetIdentifier()]
             },
             "TxBeam_DRRs": {"_TreatmentBeamDrrImages": [beam_set.BeamSetIdentifier()]},

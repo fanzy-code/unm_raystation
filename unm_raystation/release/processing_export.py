@@ -3,15 +3,15 @@
 
     Features:
 
-    Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, RT Dose Sum/Beam, DRRs
+    Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
     Dynamic ExportFolder names, for machine specific folders
     GUI with toggle-able options for changing what needs to be sent
     User feedback for status of exports: Completed or Error
     Full report log for end result
 
     TODO:
-    RTDose_sum_for_active_BeamSet rename to Active_BeamSet_Dose, xaml display name to be BeamSet Dose
-    RTDose_beam_for_active_BeamSet rename to Active_Beam_Dose, xaml display name to be Beam Dose
+    Active_BeamSet_Dose rename to Active_BeamSet_Dose, xaml display name to be BeamSet Dose
+    Active_BeamSet_BeamDose rename to Active_Beam_Dose, xaml display name to be Beam Dose
 
 
 """
@@ -21,21 +21,17 @@ __version__ = "0.1.1"
 __license__ = "MIT"
 
 import html
-import json
 import logging
 
 import System  # type: ignore
 from connect import *  # type: ignore
-from rs_utils import (  # type: ignore
-    AnonymizationSettings,
+from rs_utils import (
     DCMExportDestination,
     DicomSCP,
     get_current_helper,
     raise_error,
     save_patient,
 )
-from System.Windows import *  # type: ignore
-from System.Windows.Controls import *  # type: ignore
 
 dcm_destinations = [
     DCMExportDestination(
@@ -53,8 +49,8 @@ dcm_destinations = [
         Active_CT=True,
         RtStructureSet_from_Active_CT=True,
         Active_RTPlan=True,
-        RTDose_sum_for_active_BeamSet=True,
-        RTDose_beam_for_active_BeamSet=True,
+        Active_BeamSet_Dose=True,
+        Active_BeamSet_BeamDose=True,
     ),
     DCMExportDestination(
         name="Velocity",
@@ -62,7 +58,7 @@ dcm_destinations = [
         Active_CT=True,
         RtStructureSet_from_Active_CT=True,
         Active_RTPlan=True,
-        RTDose_sum_for_active_BeamSet=True,
+        Active_BeamSet_Dose=True,
     ),
     DCMExportDestination(
         name="CRAD",
