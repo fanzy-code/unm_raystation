@@ -10,16 +10,15 @@
     Full report log for end result
 
     TODO:
-    Active_BeamSet_Dose rename to Active_BeamSet_Dose, xaml display name to be BeamSet Dose
-    Active_BeamSet_BeamDose rename to Active_Beam_Dose, xaml display name to be Beam Dose
 
 
 """
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "0.1.1"
+__version__ = "1.0.0"
 __license__ = "MIT"
 
+import asyncio
 import html
 import logging
 
@@ -32,7 +31,10 @@ from rs_utils import (
     raise_error,
     save_patient,
 )
+from System.Windows import *  # type: ignore
+from System.Windows.Controls import *  # type: ignore
 
+# Define Dicom Destinations in this list
 dcm_destinations = [
     DCMExportDestination(
         name="MOSAIQ",
@@ -80,6 +82,9 @@ class MyWindow(RayWindow):  # type: ignore
 
         # Check for saving
         save_patient(self.patient)
+
+        if not dcm_destinations:
+            raise_error("No Dicom Destinations set.")
 
         self.dcm_destinations: list[DCMExportDestination] = [
             dcm_destination.update_with_kwargs(**self.kwargs)
@@ -293,7 +298,7 @@ class MyWindow(RayWindow):  # type: ignore
         # Close window.
         self.DialogResult = False
 
-    def SubmitClicked(self, sender, event):
+    async def SubmitClicked(self, sender, event):
         try:
             self.get_and_set_updated_attributes_from_xaml()
         except Exception as error:
@@ -302,15 +307,44 @@ class MyWindow(RayWindow):  # type: ignore
             raise_error(ErrorMessage=error_message, ExceptionError=error)
 
         self.submit.IsEnabled = False
-        # for loop through the dcm_destinations and run the export function
+        tasks = []
+        # for loop through the dcm_destinations and run the export function asynchronously
         for row_count, dcm_destination in enumerate(self.dcm_destinations):
-            status_message, log_message = dcm_destination.export(
-                self.case, self.examination, self.beam_set
+            task = asyncio.create_task(
+                dcm_destination.export(self.case, self.examination, self.beam_set)
             )
+            tasks.append(task)
             status_attribute_name = dcm_destination.name + "_status"
             status_attribute = getattr(self, status_attribute_name)
-            status_attribute.Text = status_message
-            self.log_message.Text += log_message
+            status_attribute.Text = "Exporting..."
+
+        # Wait for all tasks to complete before updating the GUI
+        for idx, task in enumerate(asyncio.as_completed(tasks)):
+            result = await task
+            status_attribute_name = self.dcm_destinations[idx].name + "_status"
+            status_attribute = getattr(self, status_attribute_name)
+            status_attribute.Text = result[0]
+            self.log_message.Text += result[1]
+        self.submit.IsEnabled = True
+
+    # def SubmitClicked(self, sender, event):
+    #     try:
+    #         self.get_and_set_updated_attributes_from_xaml()
+    #     except Exception as error:
+    #         logging.exception(error)
+    #         error_message = f"Invalid input."
+    #         raise_error(ErrorMessage=error_message, ExceptionError=error)
+
+    #     self.submit.IsEnabled = False
+    #     # for loop through the dcm_destinations and run the export function
+    #     for row_count, dcm_destination in enumerate(self.dcm_destinations):
+    #         status_message, log_message = dcm_destination.export(
+    #             self.case, self.examination, self.beam_set
+    #         )
+    #         status_attribute_name = dcm_destination.name + "_status"
+    #         status_attribute = getattr(self, status_attribute_name)
+    #         status_attribute.Text = status_message
+    #         self.log_message.Text += log_message
 
 
 def main():

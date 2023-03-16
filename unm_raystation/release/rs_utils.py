@@ -12,9 +12,10 @@ TODO:
 
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __license__ = "MIT"
 
+import asyncio
 import datetime
 import glob
 import itertools
@@ -733,7 +734,7 @@ class DCMExportDestination:
                 "xaml_value": self.Active_BeamSet_Dose,
             },
             "Active_BeamSet_BeamDose": {
-                "xaml_display": "BeamSet Beam Dose",
+                "xaml_display": "Beam Dose",
                 "xaml_name": f"{self.name}_Active_BeamSet_BeamDose",
                 "xaml_value": self.Active_BeamSet_BeamDose,
             },
@@ -851,7 +852,7 @@ class DCMExportDestination:
         )
         return
 
-    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
+    async def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
         attr_was_set = self.set_export_arguments(examination, beam_set)
         if not attr_was_set:
             status_message = "SKIPPED"
@@ -861,12 +862,13 @@ class DCMExportDestination:
         export_kwargs = self.get_export_kwargs()
 
         try:
-            result = case.ScriptableDicomExport(**export_kwargs)
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(None, case.ScriptableDicomExport, **export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except System.InvalidOperationException as error:
             self.handle_log_warnings(error)
             export_kwargs["IgnorePreConditionWarnings"] = True
-            result = case.ScriptableDicomExport(**export_kwargs)
+            result = await loop.run_in_executor(None, case.ScriptableDicomExport, **export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except Exception as error:
             status_message, log_message = self.generate_gui_message(success=False)
