@@ -327,6 +327,7 @@ class MyWindow(RayWindow):  # type: ignore
                     status_attribute = getattr(self, status_attribute_name)
                     status_attribute.Text = status_message
                     self.log_message.Text += log_message
+                    tasks.remove(task)
 
             await asyncio.sleep(0.1)
 
