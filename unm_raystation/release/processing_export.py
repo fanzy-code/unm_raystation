@@ -318,13 +318,18 @@ class MyWindow(RayWindow):  # type: ignore
             status_attribute = getattr(self, status_attribute_name)
             status_attribute.Text = "Exporting..."
 
-        # Wait for all tasks to complete before updating the GUI
-        for idx, task in enumerate(asyncio.as_completed(tasks)):
-            result = await task
-            status_attribute_name = self.dcm_destinations[idx].name + "_status"
-            status_attribute = getattr(self, status_attribute_name)
-            status_attribute.Text = result[0]
-            self.log_message.Text += result[1]
+        # Update the GUI periodically while the tasks are running
+        while any(not task.done() for task in tasks):
+            for idx, task in enumerate(tasks):
+                if task.done():
+                    status_message, log_message = await task
+                    status_attribute_name = self.dcm_destinations[idx].name + "_status"
+                    status_attribute = getattr(self, status_attribute_name)
+                    status_attribute.Text = status_message
+                    self.log_message.Text += log_message
+
+            await asyncio.sleep(0.1)
+
         self.submit.IsEnabled = True
 
     # def SubmitClicked(self, sender, event):
