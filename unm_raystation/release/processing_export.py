@@ -6,7 +6,7 @@
     Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
     Dynamic ExportFolder names, for machine specific folders
     GUI with toggle-able options for changing what needs to be sent
-    User feedback for status of exports: Completed or Error
+    User feedback for status of exports: Completed, Skipped, or Error
     Full report log for end result
 
     TODO:
@@ -334,7 +334,8 @@ class DCMExportDestination:
             result = f"Comment:\n{comment_block}\n\nWarnings:\n{warnings_block}\n\nNotifications:\n{notifications_block}"
 
         except ValueError as error:
-            raise_error(f"Error reading completion message.", error)
+            logging.info(result)
+            # raise_error(f"Error reading completion message.", error)
 
         return result
 
@@ -365,60 +366,102 @@ class DCMExportDestination:
         if not attr_was_set:
             status_message = "SKIPPED"
             log_message = f"{self.name} export... SKIPPED\n\n"
+            print(log_message)
             return status_message, log_message
 
         export_kwargs = self.get_export_kwargs()
 
         try:
+            print(f"Attempting export for {self.name}")
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(None, case.ScriptableDicomExport, **export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except System.InvalidOperationException as error:
+            print(f"Attempting export for {self.name}, ignoring warnings")
             self.handle_log_warnings(error)
             export_kwargs["IgnorePreConditionWarnings"] = True
             result = await loop.run_in_executor(None, case.ScriptableDicomExport, **export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except Exception as error:
-            status_message, log_message = self.generate_gui_message(success=False)
-            logging.info(
-                f"Export incomplete, {error}"
-            )  # now sure how to pass this to generate_gui_message yet
+            print(error)
+            status_message, log_message = self.generate_gui_message(
+                success=False, result=str(error)
+            )
+            logging.info(f"Export incomplete, {error}")
 
         return status_message, log_message
 
 
 # Define Dicom Destinations in this list
+# dcm_destinations = [
+#     DCMExportDestination(
+#         name="MOSAIQ",
+#         Connection=DicomSCP(Title="MOSAIQ"),
+#         Active_CT=True,
+#         RtStructureSet_from_Active_CT=True,
+#         Active_RTPlan=True,
+#         TxBeam_DRRs=True,
+#         SetupBeam_DRRs=True,
+#     ),
+#     DCMExportDestination(
+#         name="SunCheck",
+#         Connection=DicomSCP(Title="SunCheck"),
+#         Active_CT=True,
+#         RtStructureSet_from_Active_CT=True,
+#         Active_RTPlan=True,
+#         Active_BeamSet_Dose=True,
+#         Active_BeamSet_BeamDose=True,
+#     ),
+#     DCMExportDestination(
+#         name="Velocity",
+#         Connection=DicomSCP(Title="Velocity"),
+#         Active_CT=True,
+#         RtStructureSet_from_Active_CT=True,
+#         Active_RTPlan=True,
+#         Active_BeamSet_Dose=True,
+#     ),
+#     DCMExportDestination(
+#         name="CRAD",
+#         ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
+#         Active_CT=True,
+#         RtStructureSet_from_Active_CT=True,
+#         Active_RTPlan=True,
+#     ),
+# ]
+
+
+# Testing list
 dcm_destinations = [
     DCMExportDestination(
         name="MOSAIQ",
         Connection=DicomSCP(Title="MOSAIQ"),
-        Active_CT=True,
-        RtStructureSet_from_Active_CT=True,
-        Active_RTPlan=True,
-        TxBeam_DRRs=True,
-        SetupBeam_DRRs=True,
+        Active_CT=False,
+        RtStructureSet_from_Active_CT=False,
+        Active_RTPlan=False,
+        TxBeam_DRRs=False,
+        SetupBeam_DRRs=False,
     ),
     DCMExportDestination(
         name="SunCheck",
         Connection=DicomSCP(Title="SunCheck"),
-        Active_CT=True,
-        RtStructureSet_from_Active_CT=True,
-        Active_RTPlan=True,
-        Active_BeamSet_Dose=True,
-        Active_BeamSet_BeamDose=True,
+        Active_CT=False,
+        RtStructureSet_from_Active_CT=False,
+        Active_RTPlan=False,
+        Active_BeamSet_Dose=False,
+        Active_BeamSet_BeamDose=False,
     ),
     DCMExportDestination(
         name="Velocity",
         Connection=DicomSCP(Title="Velocity"),
-        Active_CT=True,
-        RtStructureSet_from_Active_CT=True,
-        Active_RTPlan=True,
-        Active_BeamSet_Dose=True,
+        Active_CT=False,
+        RtStructureSet_from_Active_CT=False,
+        Active_RTPlan=False,
+        Active_BeamSet_Dose=False,
     ),
     DCMExportDestination(
         name="CRAD",
         ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
-        Active_CT=True,
+        Active_CT=False,
         RtStructureSet_from_Active_CT=True,
         Active_RTPlan=True,
     ),
@@ -498,7 +541,7 @@ class MyWindow(RayWindow):  # type: ignore
         modified_xaml = xaml.format(
             xaml_table_description=xaml_table_description, xaml_table=xaml_table
         )
-        print(modified_xaml)
+        # print(modified_xaml)
         # Load the modified xaml code
         self.LoadComponent(modified_xaml)
 
@@ -651,7 +694,33 @@ class MyWindow(RayWindow):  # type: ignore
         # Close window.
         self.DialogResult = False
 
-    async def SubmitClicked(self, sender, event):
+    async def _submit_async(self):
+        tasks = {}
+        # for loop through the dcm_destinations and run the export function asynchronously
+        for dcm_destination in self.dcm_destinations:
+            task = asyncio.create_task(
+                dcm_destination.export(self.case, self.examination, self.beam_set)
+            )
+            tasks[task] = dcm_destination
+            status_attribute_name = dcm_destination.name + "_status"
+            status_attribute = getattr(self, status_attribute_name)
+            status_attribute.Text = "Exporting..."
+
+        # Update the GUI periodically while the tasks are running
+        while tasks:
+            done_tasks, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
+            for task in done_tasks:
+                status_message, log_message = await task
+                dcm_destination = tasks[task]
+                status_attribute_name = dcm_destination.name + "_status"
+                status_attribute = getattr(self, status_attribute_name)
+                status_attribute.Text = status_message
+                self.log_message.Text += log_message
+                del tasks[task]
+
+            await asyncio.sleep(0.1)
+
+    def SubmitClicked(self, sender, event):
         try:
             self.get_and_set_updated_attributes_from_xaml()
         except Exception as error:
@@ -660,50 +729,7 @@ class MyWindow(RayWindow):  # type: ignore
             raise_error(ErrorMessage=error_message, ExceptionError=error)
 
         self.submit.IsEnabled = False
-        tasks = []
-        # for loop through the dcm_destinations and run the export function asynchronously
-        for row_count, dcm_destination in enumerate(self.dcm_destinations):
-            task = asyncio.create_task(
-                dcm_destination.export(self.case, self.examination, self.beam_set)
-            )
-            tasks.append(task)
-            status_attribute_name = dcm_destination.name + "_status"
-            status_attribute = getattr(self, status_attribute_name)
-            status_attribute.Text = "Exporting..."
-
-        # Update the GUI periodically while the tasks are running
-        while any(not task.done() for task in tasks):
-            for idx, task in enumerate(tasks):
-                if task.done():
-                    status_message, log_message = await task
-                    status_attribute_name = self.dcm_destinations[idx].name + "_status"
-                    status_attribute = getattr(self, status_attribute_name)
-                    status_attribute.Text = status_message
-                    self.log_message.Text += log_message
-                    tasks.remove(task)
-
-            await asyncio.sleep(0.1)
-
-        self.submit.IsEnabled = True
-
-    # def SubmitClicked(self, sender, event):
-    #     try:
-    #         self.get_and_set_updated_attributes_from_xaml()
-    #     except Exception as error:
-    #         logging.exception(error)
-    #         error_message = f"Invalid input."
-    #         raise_error(ErrorMessage=error_message, ExceptionError=error)
-
-    #     self.submit.IsEnabled = False
-    #     # for loop through the dcm_destinations and run the export function
-    #     for row_count, dcm_destination in enumerate(self.dcm_destinations):
-    #         status_message, log_message = dcm_destination.export(
-    #             self.case, self.examination, self.beam_set
-    #         )
-    #         status_attribute_name = dcm_destination.name + "_status"
-    #         status_attribute = getattr(self, status_attribute_name)
-    #         status_attribute.Text = status_message
-    #         self.log_message.Text += log_message
+        asyncio.run(self._submit_async())
 
 
 def main():
