@@ -443,8 +443,8 @@ dcm_destinations = [
         Active_CT=False,
         RtStructureSet_from_Active_CT=False,
         Active_RTPlan=False,
-        TxBeam_DRRs=False,
-        SetupBeam_DRRs=False,
+        TxBeam_DRRs=True,
+        SetupBeam_DRRs=True,
     ),
     DCMExportDestination(
         name="SunCheck",
