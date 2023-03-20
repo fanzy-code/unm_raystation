@@ -18,11 +18,12 @@ __contact__ = "mfan1@unmmg.org"
 __version__ = "1.0.0"
 __license__ = "MIT"
 
-import asyncio
-import functools
 import html
 import json
 import logging
+import queue
+import threading
+import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -362,7 +363,7 @@ class DCMExportDestination:
         )
         return
 
-    async def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
+    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
         attr_was_set = self.set_export_arguments(examination, beam_set)
         if not attr_was_set:
             status_message = "SKIPPED"
@@ -374,18 +375,13 @@ class DCMExportDestination:
 
         try:
             print(f"Attempting export for {self.name}")
-            loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(
-                None, functools.partial(case.ScriptableDicomExport, **export_kwargs)
-            )
+            result = case.ScriptableDicomExport(**export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except System.InvalidOperationException as error:
             print(f"Attempting export for {self.name}, ignoring warnings")
             self.handle_log_warnings(error)
             export_kwargs["IgnorePreConditionWarnings"] = True
-            result = await loop.run_in_executor(
-                None, functools.partial(case.ScriptableDicomExport, **export_kwargs)
-            )
+            result = case.ScriptableDicomExport(**export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except Exception as error:
             print(error)
@@ -699,33 +695,61 @@ class MyWindow(RayWindow):  # type: ignore
         # Close window.
         self.DialogResult = False
 
-    async def _submit_async(self):
+    def _submit_threading(self):
         tasks = {}
-        # for loop through the dcm_destinations and run the export function asynchronously
+        results_queue = queue.Queue()
+
+        # for loop through the dcm_destinations and run the export function using threading.Thread
         for dcm_destination in self.dcm_destinations:
-            task = asyncio.create_task(
-                dcm_destination.export(self.case, self.examination, self.beam_set)
+            task = threading.Thread(
+                target=self._export_thread,
+                args=(dcm_destination, self.case, self.examination, self.beam_set, results_queue),
             )
             tasks[task] = dcm_destination
             status_attribute_name = dcm_destination.name + "_status"
             status_attribute = getattr(self, status_attribute_name)
             status_attribute.Text = "Exporting..."
+            task.start()
 
         # Update the GUI periodically while the tasks are running
         while tasks:
-            done_tasks, _ = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
-            for task in done_tasks:
-                status_message, log_message = await task
+            try:
+                result = results_queue.get_nowait()
+                task, status_message, log_message = result
                 dcm_destination = tasks[task]
                 status_attribute_name = dcm_destination.name + "_status"
                 status_attribute = getattr(self, status_attribute_name)
                 status_attribute.Text = status_message
                 self.log_message.Text += log_message
                 del tasks[task]
+            except queue.Empty:
+                pass
+            time.sleep(0.1)
 
-            await asyncio.sleep(0.1)
+    def _export_thread(self, dcm_destination, case, examination, beam_set, results_queue):
+        try:
+            status_message, log_message = dcm_destination.export(case, examination, beam_set)
+            results_queue.put((threading.current_thread(), status_message, log_message))
+        except Exception as error:
+            status_message, log_message = self.generate_gui_message(success=False)
+            log_message += error
+            results_queue.put((threading.current_thread(), status_message, log_message))
 
     def SubmitClicked(self, sender, event):
+        # class InfoWindow(RayWindow):  # type: ignore
+        #     def __init__(self):
+        #         xaml = """
+        #                 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        #                 Title="Test" Height="600" Width="1400">
+        #                 <Grid>
+        #                 </Grid>
+        #                 </Window>
+        #                 """
+        #         self.LoadComponent(xaml)
+
+        # info_window = InfoWindow()
+        # info_window.ShowDialog()
+
         try:
             self.get_and_set_updated_attributes_from_xaml()
         except Exception as error:
@@ -734,7 +758,7 @@ class MyWindow(RayWindow):  # type: ignore
             raise_error(ErrorMessage=error_message, rs_exception_error=error)
 
         self.submit.IsEnabled = False
-        asyncio.run(self._submit_async())
+        self._submit_threading()
 
 
 def main():
