@@ -826,7 +826,8 @@ class DCMExportDestination:
             result = f"Comment:\n{comment_block}\n\nWarnings:\n{warnings_block}\n\nNotifications:\n{notifications_block}"
 
         except ValueError as error:
-            raise_error(f"Error reading completion message.", error)
+            logging.info(result)
+            # raise_error(f"Error reading completion message.", error)
 
         return result
 
@@ -852,28 +853,31 @@ class DCMExportDestination:
         )
         return
 
-    async def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
+    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
         attr_was_set = self.set_export_arguments(examination, beam_set)
         if not attr_was_set:
             status_message = "SKIPPED"
             log_message = f"{self.name} export... SKIPPED\n\n"
+            print(log_message)
             return status_message, log_message
 
         export_kwargs = self.get_export_kwargs()
 
         try:
-            loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(None, case.ScriptableDicomExport, **export_kwargs)
+            print(f"Attempting to export to {self.name}")
+            result = case.ScriptableDicomExport(**export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except System.InvalidOperationException as error:
+            print(f"Attempting to export to {self.name}, ignoring warnings")
             self.handle_log_warnings(error)
             export_kwargs["IgnorePreConditionWarnings"] = True
-            result = await loop.run_in_executor(None, case.ScriptableDicomExport, **export_kwargs)
+            result = case.ScriptableDicomExport(**export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)
         except Exception as error:
-            status_message, log_message = self.generate_gui_message(success=False)
-            logging.info(
-                f"Export incomplete, {error}"
-            )  # now sure how to pass this to generate_gui_message yet
+            print(error)
+            status_message, log_message = self.generate_gui_message(
+                success=False, result=str(error)
+            )
+            logging.info(f"Export incomplete, {error}")
 
         return status_message, log_message
