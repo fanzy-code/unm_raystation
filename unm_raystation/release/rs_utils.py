@@ -539,7 +539,7 @@ class DicomSCP:
     def __str__(self):
         return str(self.Title)
 
-    def get_dicomscp_dict(self) -> dict:
+    def get_dicomscp_dict(self) -> Dict:
         excluded_attrs = ["_allowed_titles"]
         return {k: v for k, v in vars(self).items() if v is not None and k not in excluded_attrs}
 
@@ -683,20 +683,16 @@ class DCMExportDestination:
             )
         return
 
-    def update_with_kwargs(self, **kwargs):
+    def update_with_beam_set(self, beam_set):
+        # Extract kwargs from beam_set
+        kwargs = {"machine_name": beam_set.MachineReference.MachineName}
+
         # Update ExportFolderPath
         if self.ExportFolderPath:
             self.ExportFolderPath = self.ExportFolderPath.format(**kwargs)
         return self
 
-    def generate_xaml_attribute_dict(self):
-        """
-        Generates dictionary with key = class attribute name and dictionary of xaml related values
-
-        Returns:
-            _type_: _description_
-        """
-
+    def generate_xaml_attribute_dict(self) -> Dict:
         xaml_dict = {
             "name": {
                 "xaml_display": "Name",
@@ -752,7 +748,7 @@ class DCMExportDestination:
 
         return OrderedDict(xaml_dict)
 
-    def get_export_kwargs(self):
+    def get_export_kwargs(self) -> Dict[str, any]:
         # Prepares the export kwargs dictionary for ScriptableDicomExport function
 
         # Initialize with all variables leading with '_'
@@ -781,7 +777,7 @@ class DCMExportDestination:
 
     def set_export_arguments(
         self, examination: PyScriptObject, beam_set: PyScriptObject  # type: ignore
-    ):
+    ) -> list:
         if examination is None:
             raise ValueError("No examination provided")
         if beam_set is None:
@@ -813,7 +809,7 @@ class DCMExportDestination:
 
         return attr_was_set
 
-    def handle_result(self, result):
+    def handle_result(self, result: str) -> str:
         try:
             json_string = json.loads(str(result))
             comment_block: str = json_string["Comment"]
@@ -831,7 +827,7 @@ class DCMExportDestination:
 
         return result
 
-    def generate_gui_message(self, success: bool, result=None):
+    def generate_gui_message(self, success: bool, result=None) -> Tuple[str, str]:
         log_message = ""
         if success:
             status_message = "COMPLETE"
@@ -853,7 +849,7 @@ class DCMExportDestination:
         )
         return
 
-    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject):  # type: ignore
+    def export(self, case: PyScriptObject, examination: PyScriptObject, beam_set: PyScriptObject) -> (str, str):  # type: ignore
         attr_was_set = self.set_export_arguments(examination, beam_set)
         if not attr_was_set:
             status_message = "SKIPPED"

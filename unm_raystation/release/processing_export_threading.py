@@ -125,18 +125,12 @@ class MyWindow(RayWindow):  # type: ignore
         self.plan: PyScriptObject = get_current_helper("Plan")  # type: ignore
         self.beam_sets: List[PyScriptObject] = self.plan.BeamSets  # type: ignore
         self.active_beam_set: PyScriptObject = get_current_helper("BeamSet")  # type: ignore
-        self.kwargs: dict = {"machine_name": self.active_beam_set.MachineReference.MachineName}
 
         # Check for saving
         save_patient(self.patient)
 
         if not dcm_destinations:
             raise_error("No Dicom Destinations set.")
-
-        self.dcm_destinations: list[DCMExportDestination] = [
-            dcm_destination.update_with_kwargs(**self.kwargs)
-            for dcm_destination in dcm_destinations
-        ]
 
         # Error check for dcm_destinations of same name
         names_seen = set()
@@ -384,25 +378,41 @@ class MyWindow(RayWindow):  # type: ignore
                         class_variable_key,
                         xaml_property.IsChecked,
                     )
+        return
 
     def CancelClicked(self, sender, event):
         # Close window
         self.DialogResult = False
 
+    def get_checked_beam_sets(self) -> List[PyScriptObject]:  # type: ignore
+        checked_beam_sets = []
+        for index, beam_set in enumerate(self.beam_sets):
+            attribute_name = f"beam_set_{index}"
+            xaml_attribute = getattr(self, attribute_name)
+            if xaml_attribute.IsChecked:
+                checked_beam_sets.append(beam_set)
+
+        return checked_beam_sets
+
     def _submit_threading(self):
+        checked_beam_sets = self.get_checked_beam_sets()
         tasks = {}
         results_queue = queue.Queue()
+
         # Create and start export thread for each dcm_destination
         for dcm_destination in self.dcm_destinations:
-            task = threading.Thread(
-                target=self._export_thread,
-                args=(dcm_destination, self.case, self.examination, self.beam_set, results_queue),
-            )
-            tasks[task] = dcm_destination
-            status_attribute_name = dcm_destination.name + "_status"
-            status_attribute = getattr(self, status_attribute_name)
-            status_attribute.Text = "Exporting..."
-            task.start()
+            for beam_set in checked_beam_sets:
+                dcm_destination.update_with_beam_set(beam_set)
+
+                task = threading.Thread(
+                    target=self._export_thread,
+                    args=(dcm_destination, self.case, self.examination, beam_set, results_queue),
+                )
+                tasks[task] = dcm_destination
+                status_attribute_name = f"{dcm_destination.name}_status"
+                status_attribute = getattr(self, status_attribute_name)
+                status_attribute.Text = "Exporting..."
+                task.start()
 
         # Update the GUI periodically while the tasks are running
         while tasks:
@@ -410,7 +420,7 @@ class MyWindow(RayWindow):  # type: ignore
                 result = results_queue.get_nowait()
                 task, status_message, log_message = result
                 dcm_destination = tasks[task]
-                status_attribute_name = dcm_destination.name + "_status"
+                status_attribute_name = f"{dcm_destination.name}_status"
                 status_attribute = getattr(self, status_attribute_name)
                 status_attribute.Text = status_message
                 self.log_message.Text += log_message
