@@ -16,6 +16,7 @@ __version__ = "1.1.0"
 __license__ = "MIT"
 
 import asyncio
+import copy
 import datetime
 import glob
 import itertools
@@ -537,7 +538,10 @@ class DicomSCP:
     _allowed_titles: List[str] = field(default_factory=list)
 
     def __str__(self):
-        return str(self.Title)
+        if self.Title:
+            return str(self.Title)
+        else:
+            return str(self.Node)
 
     def get_dicomscp_dict(self) -> Dict:
         excluded_attrs = ["_allowed_titles"]
@@ -686,11 +690,14 @@ class DCMExportDestination:
     def update_with_beam_set(self, beam_set):
         # Extract kwargs from beam_set
         kwargs = {"machine_name": beam_set.MachineReference.MachineName}
-
         # Update ExportFolderPath
-        if self.ExportFolderPath:
-            self.ExportFolderPath = self.ExportFolderPath.format(**kwargs)
-        return self
+
+        updated_dcm_destination = copy.deepcopy(self)
+        if updated_dcm_destination.ExportFolderPath:
+            updated_dcm_destination.ExportFolderPath = (
+                updated_dcm_destination.ExportFolderPath.format(**kwargs)
+            )
+        return updated_dcm_destination
 
     def generate_xaml_attribute_dict(self) -> Dict:
         xaml_dict = {
@@ -827,14 +834,21 @@ class DCMExportDestination:
 
         return result
 
-    def generate_gui_message(self, success: bool, result=None) -> Tuple[str, str]:
+    def generate_gui_message(self, beam_set_name, success: bool, result=None) -> Tuple[str, str]:
         log_message = ""
+        if self.ExportFolderPath:
+            name = self.ExportFolderPath
+        if self.Connection:
+            name = self.Connection
+
         if success:
             status_message = "COMPLETE"
-            log_message = f"{self.name} export... COMPLETE\n\n"
+            log_message = (
+                f"{beam_set_name} export to {self.name} (Node/Path: {name}) ... COMPLETE\n\n"
+            )
         else:
             status_message = "Error"
-            log_message = f"{self.name} export... Error\n\n"
+            log_message = f"{beam_set_name} export to {self.name} (Node/Path: {name})... Error\n\n"
 
         if result:
             log_message += self.handle_result(result)
@@ -853,21 +867,27 @@ class DCMExportDestination:
         attr_was_set = self.set_export_arguments(examination, beam_set)
         if not attr_was_set:
             status_message = "SKIPPED"
-            log_message = f"{self.name} export... SKIPPED\n\n"
+            log_message = (
+                f"Beam set {beam_set.DicomPlanLabel} export to {self.name}... SKIPPED\n\n"
+            )
             print(log_message)
             return status_message, log_message
 
         export_kwargs = self.get_export_kwargs()
 
         try:
-            print(f"Exporting to {self.name}, ignoring warnings")
+            print(
+                f"Exporting beam set {beam_set.DicomPlanLabel} to {self.name}, ignoring warnings"
+            )
             export_kwargs["IgnorePreConditionWarnings"] = True
             result = case.ScriptableDicomExport(**export_kwargs)
-            status_message, log_message = self.generate_gui_message(success=True, result=result)
+            status_message, log_message = self.generate_gui_message(
+                beam_set_name=beam_set.DicomPlanLabel, success=True, result=result
+            )
         except Exception as error:
             print(error)
             status_message, log_message = self.generate_gui_message(
-                success=False, result=str(error)
+                beam_set_name=beam_set.DicomPlanLabel, success=False, result=str(error)
             )
             logging.info(f"Export incomplete, {error}")
 

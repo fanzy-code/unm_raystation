@@ -2,7 +2,7 @@
     processing_export script to send various DICOM data to multiple locations
 
     Features:
-    Supported for multiple beam_sets
+    Multiple beam_sets support
     Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
     Dynamic ExportFolder names, for machine specific folders
     GUI with toggle-able options for changing what needs to be sent
@@ -43,79 +43,79 @@ from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
 # Define Dicom Destinations in this list
-# dcm_destinations = [
-#     DCMExportDestination(
-#         name="MOSAIQ",
-#         Connection=DicomSCP(Title="MOSAIQ"),
-#         Active_CT=True,
-#         RtStructureSet_from_Active_CT=True,
-#         Active_RTPlan=True,
-#         TxBeam_DRRs=True,
-#         SetupBeam_DRRs=True,
-#     ),
-#     DCMExportDestination(
-#         name="SunCheck",
-#         Connection=DicomSCP(Title="SunCheck"),
-#         Active_CT=True,
-#         RtStructureSet_from_Active_CT=True,
-#         Active_RTPlan=True,
-#         Active_BeamSet_Dose=True,
-#         Active_BeamSet_BeamDose=True,
-#     ),
-#     DCMExportDestination(
-#         name="Velocity",
-#         Connection=DicomSCP(Title="Velocity"),
-#         Active_CT=True,
-#         RtStructureSet_from_Active_CT=True,
-#         Active_RTPlan=True,
-#         Active_BeamSet_Dose=True,
-#     ),
-#     DCMExportDestination(
-#         name="CRAD",
-#         ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
-#         Active_CT=True,
-#         RtStructureSet_from_Active_CT=True,
-#         Active_RTPlan=True,
-#     ),
-# ]
-
-
-# Testing list
 dcm_destinations = [
     DCMExportDestination(
         name="MOSAIQ",
         Connection=DicomSCP(Title="MOSAIQ"),
-        Active_CT=False,
-        RtStructureSet_from_Active_CT=False,
-        Active_RTPlan=False,
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
         TxBeam_DRRs=True,
         SetupBeam_DRRs=True,
     ),
     DCMExportDestination(
         name="SunCheck",
         Connection=DicomSCP(Title="SunCheck"),
-        Active_CT=False,
-        RtStructureSet_from_Active_CT=False,
-        Active_RTPlan=False,
-        Active_BeamSet_Dose=False,
-        Active_BeamSet_BeamDose=False,
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        Active_BeamSet_Dose=True,
+        Active_BeamSet_BeamDose=True,
     ),
     DCMExportDestination(
         name="Velocity",
         Connection=DicomSCP(Title="Velocity"),
-        Active_CT=False,
-        RtStructureSet_from_Active_CT=False,
-        Active_RTPlan=False,
-        Active_BeamSet_Dose=False,
+        Active_CT=True,
+        RtStructureSet_from_Active_CT=True,
+        Active_RTPlan=True,
+        Active_BeamSet_Dose=True,
     ),
     DCMExportDestination(
         name="CRAD",
         ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
-        Active_CT=False,
+        Active_CT=True,
         RtStructureSet_from_Active_CT=True,
         Active_RTPlan=True,
     ),
 ]
+
+
+# Testing list
+# dcm_destinations = [
+#     DCMExportDestination(
+#         name="MOSAIQ",
+#         Connection=DicomSCP(Title="MOSAIQ"),
+#         Active_CT=False,
+#         RtStructureSet_from_Active_CT=False,
+#         Active_RTPlan=False,
+#         TxBeam_DRRs=True,
+#         SetupBeam_DRRs=True,
+#     ),
+#     DCMExportDestination(
+#         name="SunCheck",
+#         Connection=DicomSCP(Title="SunCheck"),
+#         Active_CT=False,
+#         RtStructureSet_from_Active_CT=False,
+#         Active_RTPlan=False,
+#         Active_BeamSet_Dose=False,
+#         Active_BeamSet_BeamDose=False,
+#     ),
+#     DCMExportDestination(
+#         name="Velocity",
+#         Connection=DicomSCP(Title="Velocity"),
+#         Active_CT=False,
+#         RtStructureSet_from_Active_CT=False,
+#         Active_RTPlan=False,
+#         Active_BeamSet_Dose=False,
+#     ),
+#     DCMExportDestination(
+#         name="CRAD",
+#         ExportFolderPath="//hsc-cc-crad/CRAD_Patients/{machine_name}",
+#         Active_CT=False,
+#         RtStructureSet_from_Active_CT=True,
+#         Active_RTPlan=True,
+#     ),
+# ]
 
 
 class MyWindow(RayWindow):  # type: ignore
@@ -127,9 +127,6 @@ class MyWindow(RayWindow):  # type: ignore
         self.beam_sets: List[PyScriptObject] = self.plan.BeamSets  # type: ignore
         self.active_beam_set: PyScriptObject = get_current_helper("BeamSet")  # type: ignore
         self.dcm_destinations: list[DCMExportDestination] = dcm_destinations
-
-        # Check for saving
-        save_patient(self.patient)
 
         if not dcm_destinations:
             raise_error("No Dicom Destinations set.")
@@ -188,7 +185,7 @@ class MyWindow(RayWindow):  # type: ignore
         modified_xaml = xaml.format(
             xaml_table_description=xaml_table_description, xaml_table=xaml_table
         )
-        print(modified_xaml)
+        # print(modified_xaml)
         # Load the modified xaml code
         self.LoadComponent(modified_xaml)
 
@@ -404,14 +401,19 @@ class MyWindow(RayWindow):  # type: ignore
         # Create and start export thread for each dcm_destination
         for dcm_destination in self.dcm_destinations:
             for beam_set in checked_beam_sets:
-                dcm_destination.update_with_beam_set(beam_set)
-
+                updated_dcm_destination = dcm_destination.update_with_beam_set(beam_set)
                 task = threading.Thread(
                     target=self._export_thread,
-                    args=(dcm_destination, self.case, self.examination, beam_set, results_queue),
+                    args=(
+                        updated_dcm_destination,
+                        self.case,
+                        self.examination,
+                        beam_set,
+                        results_queue,
+                    ),
                 )
-                tasks[task] = dcm_destination
-                status_attribute_name = f"{dcm_destination.name}_status"
+                tasks[task] = updated_dcm_destination
+                status_attribute_name = f"{updated_dcm_destination.name}_status"
                 status_attribute = getattr(self, status_attribute_name)
                 status_attribute.Text = "Exporting..."
                 task.start()
@@ -421,8 +423,8 @@ class MyWindow(RayWindow):  # type: ignore
             try:
                 result = results_queue.get_nowait()
                 task, status_message, log_message = result
-                dcm_destination = tasks[task]
-                status_attribute_name = f"{dcm_destination.name}_status"
+                updated_dcm_destination = tasks[task]
+                status_attribute_name = f"{updated_dcm_destination.name}_status"
                 status_attribute = getattr(self, status_attribute_name)
                 status_attribute.Text = status_message
                 self.log_message.Text += log_message
