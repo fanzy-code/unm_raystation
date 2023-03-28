@@ -860,12 +860,7 @@ class DCMExportDestination:
         export_kwargs = self.get_export_kwargs()
 
         try:
-            print(f"Attempting to export to {self.name}")
-            result = case.ScriptableDicomExport(**export_kwargs)
-            status_message, log_message = self.generate_gui_message(success=True, result=result)
-        except System.InvalidOperationException as error:
-            print(f"Attempting to export to {self.name}, ignoring warnings")
-            self.handle_log_warnings(error)
+            print(f"Exporting to {self.name}, ignoring warnings")
             export_kwargs["IgnorePreConditionWarnings"] = True
             result = case.ScriptableDicomExport(**export_kwargs)
             status_message, log_message = self.generate_gui_message(success=True, result=result)

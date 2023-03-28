@@ -2,14 +2,15 @@
     processing_export script to send various DICOM data to multiple locations
 
     Features:
-
+    Supported for multiple beam_sets
     Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
     Dynamic ExportFolder names, for machine specific folders
     GUI with toggle-able options for changing what needs to be sent
     User feedback for status of exports: Completed, Skipped, or Error
     Full report log for end result
 
-    TODO:
+    
+    TODO: ...
 
 
 """
@@ -125,6 +126,7 @@ class MyWindow(RayWindow):  # type: ignore
         self.plan: PyScriptObject = get_current_helper("Plan")  # type: ignore
         self.beam_sets: List[PyScriptObject] = self.plan.BeamSets  # type: ignore
         self.active_beam_set: PyScriptObject = get_current_helper("BeamSet")  # type: ignore
+        self.dcm_destinations: list[DCMExportDestination] = dcm_destinations
 
         # Check for saving
         save_patient(self.patient)
@@ -222,7 +224,7 @@ class MyWindow(RayWindow):  # type: ignore
 
         # Grid row 3 and column 1 brings it to correct table position
         xaml_beam_sets = """
-        <Grid Grid.Row="3" Grid.Column="1" Margin="3">
+        <Grid Grid.Row="3" Grid.Column="1" Margin="5">
             <Grid.ColumnDefinitions>
                 {column_definition}
             </Grid.ColumnDefinitions>
