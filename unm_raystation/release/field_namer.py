@@ -22,7 +22,7 @@
 
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __license__ = "MIT"
 
 ### Code block required only for development in jupyter notebook, omit for production code
@@ -232,7 +232,7 @@ class BeamSetWrapper:
 
         return list(zip(beam_index, new_beam_names, new_beam_descriptions))
 
-    def rename_my_beams(self, beams, new_beam_names_descriptions, rename_iso=True, ignore_beam=[]):
+    def rename_my_beams(self, beams, new_beam_names_descriptions, ignore_beam=[]):
         # Function to rename passed beams in beam_names_description zip
         # beams must be full set of beams of either treatment or setup type
 
@@ -282,10 +282,76 @@ class BeamSetWrapper:
             current_beam_names[beam_number_index] = new_beam_name
             current_beam_descriptions[beam_number_index] = new_beam_description
 
-            if rename_iso:
-                # Rename the isocenter to beam_set name
-                beam_wrapper.RenameIsocenter(self._BeamSet.DicomPlanLabel)
+        return
 
+    def get_current_isocenters(self):
+        """Returns unique list of isocenter objects"""
+        current_isocenters = [beam.Isocenter for beam in self._BeamSet.Beams] + [
+            beam.Isocenter for beam in self._BeamSet.PatientSetup.SetupBeams
+        ]
+        unique_current_isocenter_names = []
+        unique_current_isocenters = []
+        for isocenter in current_isocenters:
+            if isocenter.Annotation.Name in unique_current_isocenter_names:
+                continue
+            unique_current_isocenter_names.append(isocenter.Annotation.Name)
+            unique_current_isocenters.append(isocenter)
+
+        return unique_current_isocenters, unique_current_isocenter_names
+
+    def get_new_isocenter_names(self, unique_current_isocenters):
+        """Create a mapping dictionary to go from old name to new name"""
+        new_name_map = []
+        for index, isocenter in enumerate(unique_current_isocenters):
+            name_index = index + 1
+            new_name = f"{self._BeamSet.DicomPlanLabel}_{name_index}"
+            new_name_map.append(new_name)
+        return new_name_map
+
+    def rename_duplicate_isocenters(
+        self, new_name, unique_current_isocenters, unique_current_isocenter_names
+    ):
+        if new_name in unique_current_isocenter_names:
+            duplicate_index = unique_current_isocenter_names.index(new_name)
+            temp_name = unique_current_isocenters[duplicate_index].Annotation.Name + "z"
+            iso_with_duplicate_name = unique_current_isocenters[duplicate_index]
+            self.rename_isocenter(iso_with_duplicate_name, temp_name)
+
+            # Update the current names list
+            unique_current_isocenter_names[duplicate_index] = temp_name
+
+        return unique_current_isocenter_names
+
+    def rename_all_isocenters(self):
+        unique_current_isocenters, unique_current_isocenter_names = self.get_current_isocenters()
+        new_name_map = self.get_new_isocenter_names(unique_current_isocenters)
+        for isocenter_index, isocenter in enumerate(unique_current_isocenters):
+            isocenter_name = unique_current_isocenter_names[isocenter_index]
+            new_name = new_name_map[isocenter_index]
+            if isocenter_name == new_name:
+                continue
+
+            unique_current_isocenter_names = self.rename_duplicate_isocenters(
+                new_name, unique_current_isocenters, unique_current_isocenter_names
+            )
+
+            # Rename current isocenter to desired new name
+            self.rename_isocenter(isocenter, new_name)
+
+            # Update the current beam name list
+            unique_current_isocenter_names[isocenter_index] = new_name
+
+        return
+
+    def rename_isocenter(self, isocenter, new_name):
+        try:
+            isocenter.EditIsocenter(Name=new_name)
+        except Exception as error:
+            logging.exception(error)
+            error_message = (
+                f"Cannot set isocenter {isocenter.Annotation.Name} to new name: {new_name}."
+            )
+            rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
         return
 
 
@@ -389,7 +455,7 @@ class BeamWrapper:
             except System.InvalidOperationException as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam name {self._Beam.Name} to {beam_name_string}."
-                rs_utils.raise_error(ErrorMessage=error_message, ExceptionError=error)
+                rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
 
         if not self._Beam.Description == beam_description_string:
             try:
@@ -397,17 +463,8 @@ class BeamWrapper:
             except Exception as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam description {self._Beam.Description} to {beam_description_string}."
-                rs_utils.raise_error(ErrorMessage=error_message, ExceptionError=error)
+                rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
 
-        return
-
-    def RenameIsocenter(self, new_name):
-        try:
-            self._Beam.Isocenter.EditIsocenter(Name=new_name)
-        except Exception as error:
-            logging.exception(error)
-            error_message = f"Cannot set beam {self._Beam.Name}'s isocenter name to {new_name}."
-            rs_utils.raise_error(ErrorMessage=error_message, ExceptionError=error)
         return
 
 
@@ -487,7 +544,7 @@ class FieldNamerGUI(RayWindow):  # type: ignore
         except Exception as error:
             logging.exception(error)
             error_message = f"Invalid input for one of the starting beam numbers."
-            rs_utils.raise_error(ErrorMessage=error_message, ExceptionError=error)
+            rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
 
         self.DialogResult = True
 
@@ -552,14 +609,12 @@ def main():
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get beams for beam set {beam_set.DicomPlanLabel}."
-        rs_utils.raise_error(ErrorMessage=error_message, ExceptionError=error)
+        rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
 
     new_tx_beam_names_descriptions = beam_set_wrapper.get_new_beam_names_descriptions(
         tx_beams, starting_tx_beam_number
     )
-    beam_set_wrapper.rename_my_beams(
-        tx_beams, new_tx_beam_names_descriptions, rename_iso=rename_iso
-    )
+    beam_set_wrapper.rename_my_beams(tx_beams, new_tx_beam_names_descriptions)
 
     ### Setup beams
     try:
@@ -567,7 +622,7 @@ def main():
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get setup beams for beam set {beam_set.DicomPlanLabel}."
-        rs_utils.raise_error(ErrorMessage=error_message, ExceptionError=error)
+        rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
 
     # find last_index to ignore the renaming the last setup beam
     last_index = len(setup_beams) - 1
@@ -577,7 +632,6 @@ def main():
     beam_set_wrapper.rename_my_beams(
         setup_beams,
         new_su_beam_names_descriptions,
-        rename_iso=rename_iso,
         ignore_beam=[last_index],
     )
 
@@ -598,9 +652,11 @@ def main():
     beam_set_wrapper.rename_my_beams(
         setup_beams,
         new_xvi_beam_names_descriptions,
-        rename_iso=rename_iso,
         ignore_beam=ignore_su_beam_index,
     )
+
+    if rename_iso:
+        beam_set_wrapper.rename_all_isocenters()
 
 
 if __name__ == "__main__":
