@@ -36,7 +36,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import pydicom as dicom
 
 # RayStation API
-import System  # type: ignore
+import System
 from connect import PyScriptObject, get_current  # type: ignore
 
 

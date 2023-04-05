@@ -7,7 +7,7 @@
         - Gantry position or source position
         - Couch position
         - BeamSet name
-    Renames all field isocenters to BeamSet name
+    Rename isocenters to beam set name, supports multiple isocenters
     Last setup field is always named as XVI
 
     Features:
@@ -16,6 +16,7 @@
     Prompts user with GUI to verify starting number inputs
     Validates user input
     Handles beam name and beam description duplicates
+    Handles isocenter name duplicates
 
 
 """
@@ -25,30 +26,17 @@ __contact__ = "mfan1@unmmg.org"
 __version__ = "0.2.0"
 __license__ = "MIT"
 
-### Code block required only for development in jupyter notebook, omit for production code
-
-# import os
-# import sys
-# raystation_pid = os.environ['RAYSTATION_PID']
-# ScriptClient_path = 'C:\\Program Files\\RaySearch Laboratories\\RayStation 11B-SP2\\ScriptClient'
-# sys.path.append(ScriptClient_path)
-# environment_scripts_path = os.path.join(os.environ['TEMP'], 'RaySearch\RayStation\Scripts', raystation_pid.split('_')[0], raystation_pid)
-# sys.path.append(environment_scripts_path)
-
-###
 
 # Code block for importing RayStation System modules
 
 import logging
 import re
 
-import rs_utils  # type: ignore
+import rs_utils
 import System  # type: ignore
 from connect import *  # type: ignore
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
-
-# Main body of code starting here
 
 
 class PatientWrapper:
@@ -411,7 +399,7 @@ class BeamWrapper:
         # Convert couch position to integer
         couch_position = int(self._Beam.CouchRotationAngle)
 
-        # Return empty string for couch position if conditions are right
+        # Return empty string for couch position is 0 and if blank_if_zero = True
         if not couch_position and blank_if_zero:
             return ""
 
