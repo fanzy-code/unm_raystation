@@ -1,32 +1,30 @@
+### Initialize the test environment by adding paths to ScriptClient.dll and connect module
+import os
 import sys
 import types
 
-# Initialize testing environment
 from definitions import ROOT_DIR
 
+# Add the parent directory of the __init__.py file to the path
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, parent_dir)
+
+# Add this directory containing the script to the path
+release_path = ROOT_DIR + "\\unm_raystation\\release\\"
+sys.path.append(release_path)
+
+# Add the RayStation ScriptClient and connect directories to the path
 ScriptClient_path = ROOT_DIR + "\\RS_ScriptClient\\"
-connect_path = ROOT_DIR + "\\RS_ScriptClient\\connect\\"
-environment_scripts_path = ROOT_DIR + "\\unm_raystation\\release\\"
-
 sys.path.append(ScriptClient_path)
+
+connect_path = ROOT_DIR + "\\RS_ScriptClient\\connect\\"
 sys.path.append(connect_path)
-sys.path.append(environment_scripts_path)
 
+# Assemblies
+dll_directory = ROOT_DIR + "\\assemblies\\"
+sys.path.append(dll_directory)
+import clr  # type: ignore
 
-# Fake System
-class System:
-    class InvalidOperationException(Exception):
-        pass
-
-    def __init__(self):
-        pass
-
-    @property
-    def invalid_operation_exception(self):
-        raise self.InvalidOperationException("Invalid operation")
-
-
-fake_system_module = types.ModuleType("System")
-fake_system_module.__dict__["System"] = System
-
-sys.modules["System"] = fake_system_module
+clr.AddReference("System")  # System = System.dll
+clr.AddReference("System.Windows")  # System.Windows = PresentationCore.dll
+clr.AddReference("PresentationFramework")  # System.Windows.Controls = PresentationFramework.dll
