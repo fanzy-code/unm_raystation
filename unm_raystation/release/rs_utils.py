@@ -37,7 +37,7 @@ import pydicom as dicom
 
 # RayStation API
 import System
-from connect import PyScriptObject, get_current  # type: ignore
+from connect import PyScriptObject, get_current
 
 
 def raise_error(error_message: str, rs_exception_error: Any) -> None:
@@ -755,7 +755,7 @@ class DCMExportDestination:
 
         return OrderedDict(xaml_dict)
 
-    def get_export_kwargs(self) -> Dict[str, any]:
+    def get_export_kwargs(self) -> Dict[str, Any]:
         # Prepares the export kwargs dictionary for ScriptableDicomExport function
 
         # Initialize with all variables leading with '_'
@@ -820,8 +820,8 @@ class DCMExportDestination:
         try:
             json_string = json.loads(str(result))
             comment_block: str = json_string["Comment"]
-            warnings: list[str] = json_string["Warnings"]
-            notifications: list[str] = json_string["Notifications"]
+            warnings: List[str] = json_string["Warnings"]
+            notifications: List[str] = json_string["Notifications"]
 
             warnings_block = "\n".join(warnings)
             notifications_block = "\n".join(notifications)
@@ -839,7 +839,7 @@ class DCMExportDestination:
         if self.ExportFolderPath:
             name = self.ExportFolderPath
         if self.Connection:
-            name = self.Connection
+            name = str(self.Connection)
 
         if success:
             status_message = "COMPLETE"
