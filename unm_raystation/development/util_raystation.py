@@ -38,8 +38,8 @@ import pydicom as dicom
 # RayStation API
 import System
 from connect import PyScriptObject, RayWindow, get_current
-from System.Windows import *  # type: ignore
-from System.Windows.Controls import *  # type: ignore
+from System.Windows import *
+from System.Windows.Controls import *
 
 
 class ErrorWindow(RayWindow):
@@ -205,7 +205,6 @@ def slugify(value: str, allow_unicode: bool = False) -> str:
         value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     value = re.sub(r"[^\w\s-]", "", value)
     return re.sub(r"[-\s]+", "-", value).strip("-_")
-
 
 
 @dataclass
@@ -574,4 +573,3 @@ class DCMExportDestination:
             logging.info(f"Export incomplete, {error}")
 
         return status_message, log_message
-

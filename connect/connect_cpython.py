@@ -3,7 +3,7 @@ import ctypes
 ctypes.windll.ole32.CoInitialize(
     None
 )  # Must be done before importing clr, to set thread apartment state to STA for GUIs.
-import clr
+import clr  # type: ignore
 
 clr.AddReference("ScriptClient")
 clr.AddReference("System.Runtime")
@@ -16,12 +16,12 @@ import os
 import sys
 import traceback
 
-import numpy as np
-import ScriptClient
+import numpy as np  # type: ignore
+import ScriptClient  # type: ignore
 
 import System
-import System.Linq
-from System import (
+import System.Linq  # type: ignore
+from System import (  # type: ignore
     Boolean,
     Byte,
     Double,
@@ -36,12 +36,12 @@ from System import (
     UInt32,
     UInt64,
 )
-from System.Runtime.InteropServices import GCHandle, GCHandleType
+from System.Runtime.InteropServices import GCHandle, GCHandleType  # type: ignore
 
 if sys.version_info.major == 2:
-    import __builtin__ as builtins  # Python 2
+    import __builtin__ as builtins  # type: ignore
 elif sys.version_info.major == 3:
-    import builtins  # Python 3
+    import builtins  # type: ignore
 else:
     raise Exception("Unknown Python version.")
 
@@ -217,7 +217,7 @@ class sorted_dict(dict):
     """
 
     """The .NET type for the keys in the dictionary."""
-    key_type = None
+    key_type = None  # type: ignore
 
     def __init__(self, d=None, key_type=None):
         """
@@ -746,7 +746,7 @@ def run(script, location="."):
     append_path(".")
     os.chdir(location)
     if is_autotest(script):
-        import autotest_globals
+        import autotest_globals  # type: ignore
 
         autotest_globals.import_autotest(
             script,
@@ -843,7 +843,7 @@ class RayCareContextData:
     """
 
     """Client certificate shared by all RayCareContexts."""
-    _client_certificate = None
+    _client_certificate = None # type: ignore
 
     """
     Creates a RayCareContextData object for a specific patient and case.

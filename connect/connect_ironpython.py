@@ -1,15 +1,15 @@
 ﻿import os
 import sys
 
-import clr
+import clr  # type: ignore
 
 import System
 
 clr.AddReference("ScriptClient")
 import traceback
 
-import __builtin__
-import ScriptClient
+import __builtin__  # type: ignore
+import ScriptClient  # type: ignore
 
 
 def connect(pid, base_addr="net.pipe://localhost/raystation_"):
@@ -133,7 +133,7 @@ def run(script, location="."):
     append_path(".")
     os.chdir(location)
     if is_autotest(script):
-        import autotest_globals
+        import autotest_globals  # type: ignore
 
         autotest_globals.import_autotest(
             script,
@@ -279,7 +279,7 @@ def set_progress(message, percentage=-1, operation=None):
 
 
 # Connecting to RayStation
-if not os.environ.has_key("RAYSTATION_PID"):
+if not os.environ.has_key("RAYSTATION_PID"): # type: ignore
     # If the environment variable 'RAYSTATION_PID' is not set it might mean that a test script is being
     # run from Visual Studio.
     raystation_pid = get_pid("RayStation.exe")

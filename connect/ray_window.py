@@ -2,10 +2,10 @@ import re
 from io import StringIO
 from xml.etree import ElementTree
 
-from System.IO import StringReader
-from System.Windows import LogicalTreeHelper
-from System.Windows.Markup import XamlReader
-from System.Xml import XmlReader
+from System.IO import StringReader  # type: ignore
+from System.Windows import LogicalTreeHelper  # type: ignore
+from System.Windows.Markup import XamlReader  # type: ignore
+from System.Xml import XmlReader  # type: ignore
 
 
 class RayWindow:
