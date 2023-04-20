@@ -29,8 +29,6 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import System  # type: ignore
-from connect import *  # type: ignore
 from rs_utils import (
     AnonymizationSettings,
     DCMExportDestination,
@@ -39,6 +37,9 @@ from rs_utils import (
     raise_error,
     save_patient,
 )
+
+import System  # type: ignore
+from connect import *  # type: ignore
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
@@ -468,10 +469,10 @@ class MyWindow(RayWindow):  # type: ignore
         self._submit_threading()
 
 
-def main():
+def main_threaded():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
 
 
 if __name__ == "__main__":
-    main()
+    main_threaded()

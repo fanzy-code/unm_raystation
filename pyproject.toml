@@ -116,5 +116,13 @@ line-length = 99
 profile = "black"
 
 [tool.mypy]
-mypy_path = "unm_raystation/development/, unm_raystation/release/"
-explicit_package_bases = True
+scripts_are_modules = true
+
+
+[[tool.mypy.overrides]]
+module = "unm_raystation.development"
+
+
+
+[[tool.mypy.overrides]]
+module = "unm_raystation.release"

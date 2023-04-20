@@ -10,8 +10,12 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, parent_dir)
 
 # Add this directory containing the script to the path
+development_path = ROOT_DIR + "\\unm_raystation\\development\\"
+sys.path.append(development_path)
+
 release_path = ROOT_DIR + "\\unm_raystation\\release\\"
 sys.path.append(release_path)
+
 
 # Add the RayStation ScriptClient and connect directories to the path
 ScriptClient_path = ROOT_DIR + "\\RS_ScriptClient\\"

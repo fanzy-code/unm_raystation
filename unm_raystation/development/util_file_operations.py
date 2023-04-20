@@ -1,3 +1,6 @@
+"""
+Contain utility functions for file operations.
+"""
 import datetime
 import glob
 import logging
@@ -5,14 +8,10 @@ import os
 import shutil
 import warnings
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable
 
 import pydicom as dicom
-from util_raystation import slugify
-
-"""
-Contain utility functions for file operations.
-"""
+from util_raystation_general import slugify
 
 
 def archive_file(src_path: str) -> str:

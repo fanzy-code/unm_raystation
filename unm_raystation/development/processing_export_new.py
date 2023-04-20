@@ -20,7 +20,6 @@ __version__ = "1.0.0"
 __license__ = "MIT"
 
 import html
-import json
 import logging
 import queue
 import threading
@@ -29,13 +28,11 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from util_raystation import (
+from util_raystation_general import get_current_helper, raise_error, save_patient
+from util_raystation_networking import (
     AnonymizationSettings,
     DCMExportDestination,
     DicomSCP,
-    get_current_helper,
-    raise_error,
-    save_patient,
 )
 
 import System  # type: ignore
@@ -469,10 +466,10 @@ class MyWindow(RayWindow):  # type: ignore
         self._submit_threading()
 
 
-def main():
+def main_processing_export():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
 
 
 if __name__ == "__main__":
-    main()
+    main_processing_export()

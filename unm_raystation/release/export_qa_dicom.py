@@ -28,7 +28,7 @@ import glob
 import json
 import os
 
-import rs_utils  # type: ignore
+import rs_utils
 
 from connect import *  # type: ignore
 

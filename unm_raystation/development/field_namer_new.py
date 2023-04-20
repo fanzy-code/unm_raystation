@@ -32,7 +32,7 @@ __license__ = "MIT"
 import logging
 import re
 
-import util_raystation  # type: ignore
+from util_raystation_general import get_current_helper, raise_error
 
 import System  # type: ignore
 from connect import *  # type: ignore
@@ -340,7 +340,7 @@ class BeamSetWrapper:
             error_message = (
                 f"Cannot set isocenter {isocenter.Annotation.Name} to new name: {new_name}."
             )
-            rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+            raise_error(error_message=error_message, rs_exception_error=error)
         return
 
 
@@ -444,7 +444,7 @@ class BeamWrapper:
             except System.InvalidOperationException as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam name {self._Beam.Name} to {beam_name_string}."
-                rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+                raise_error(error_message=error_message, rs_exception_error=error)
 
         if not self._Beam.Description == beam_description_string:
             try:
@@ -452,7 +452,7 @@ class BeamWrapper:
             except Exception as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam description {self._Beam.Description} to {beam_description_string}."
-                rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+                raise_error(error_message=error_message, rs_exception_error=error)
 
         return
 
@@ -533,15 +533,15 @@ class FieldNamerGUI(RayWindow):  # type: ignore
         except Exception as error:
             logging.exception(error)
             error_message = f"Invalid input for one of the starting beam numbers."
-            rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+            raise_error(error_message=error_message, rs_exception_error=error)
 
         self.DialogResult = True
 
 
-def main():
-    patient = rs_utils.get_current_helper("Patient")
-    plan = rs_utils.get_current_helper("Plan")
-    beam_set = rs_utils.get_current_helper("BeamSet")
+def main_field_namer():
+    patient = get_current_helper("Patient")
+    plan = get_current_helper("Plan")
+    beam_set = get_current_helper("BeamSet")
 
     # Wrap classes to include additional methods
     beam_set_wrapper = BeamSetWrapper(plan=plan, beam_set=beam_set)
@@ -598,7 +598,7 @@ def main():
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get beams for beam set {beam_set.DicomPlanLabel}."
-        rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=error)
 
     new_tx_beam_names_descriptions = beam_set_wrapper.get_new_beam_names_descriptions(
         tx_beams, starting_tx_beam_number
@@ -611,7 +611,7 @@ def main():
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get setup beams for beam set {beam_set.DicomPlanLabel}."
-        rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=error)
 
     # find last_index to ignore the renaming the last setup beam
     last_index = len(setup_beams) - 1
@@ -649,4 +649,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main_field_namer()

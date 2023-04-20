@@ -30,14 +30,16 @@ from typing import Callable, Dict, List, Optional
 
 import pydicom as dicom
 from util_file_operations import (
-    archive_file,
     clean_working_directory_dcm,
     create_sub_directory,
-    get_new_filename,
     rename_dicom_RD_RP,
-    rename_file,
 )
-from util_raystation import get_current_helper, raise_error, save_patient, slugify
+from util_raystation_general import (
+    get_current_helper,
+    raise_error,
+    save_patient,
+    slugify,
+)
 
 from connect import PyScriptObject
 

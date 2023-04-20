@@ -1,16 +1,15 @@
 """
-    processing_export script to send various DICOM data to multiple locations
+processing_export script to send various DICOM data to multiple locations
 
-    Features:
+Features:
 
-    Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
-    Dynamic ExportFolder names, for machine specific folders
-    GUI with toggle-able options for changing what needs to be sent
-    User feedback for status of exports: Completed, Skipped, or Error
-    Full report log for end result
+Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
+Dynamic ExportFolder names, for machine specific folders
+GUI with toggle-able options for changing what needs to be sent
+User feedback for status of exports: Completed, Skipped, or Error
+Full report log for end result
 
-    TODO:
-
+TODO:
 
 """
 __author__ = "Michael Fan"
@@ -738,10 +737,10 @@ class MyWindow(RayWindow):  # type: ignore
         asyncio.run(self._submit_async())
 
 
-def main():
+def main_normal():
     window = MyWindow(dcm_destinations)
     window.ShowDialog()
 
 
 if __name__ == "__main__":
-    main()
+    main_normal()
