@@ -32,7 +32,7 @@ __license__ = "MIT"
 import logging
 import re
 
-import rs_utils_new  # type: ignore
+import util_raystation  # type: ignore
 
 import System  # type: ignore
 from connect import *  # type: ignore

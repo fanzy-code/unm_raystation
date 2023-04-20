@@ -8,8 +8,8 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, parent_dir)
 
 # Add this directory containing the script to the path
-release_path = ROOT_DIR + "\\unm_raystation\\development\\"
-sys.path.append(release_path)
+development_path = ROOT_DIR + "\\unm_raystation\\development\\"
+sys.path.append(development_path)
 
 # release_path = ROOT_DIR + "\\unm_raystation\\release\\"
 # sys.path.append(release_path)

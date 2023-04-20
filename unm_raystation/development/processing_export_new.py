@@ -29,9 +29,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import System  # type: ignore
-from connect import *  # type: ignore
-from rs_utils import (
+from util_raystation import (
     AnonymizationSettings,
     DCMExportDestination,
     DicomSCP,
@@ -39,6 +37,9 @@ from rs_utils import (
     raise_error,
     save_patient,
 )
+
+import System  # type: ignore
+from connect import *  # type: ignore
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 

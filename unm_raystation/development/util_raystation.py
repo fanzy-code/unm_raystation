@@ -38,8 +38,8 @@ import pydicom as dicom
 # RayStation API
 import System
 from connect import PyScriptObject, RayWindow, get_current
-from System.Windows import *
-from System.Windows.Controls import *
+from System.Windows import *  # type: ignore
+from System.Windows.Controls import *  # type: ignore
 
 
 class ErrorWindow(RayWindow):

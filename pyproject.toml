@@ -114,3 +114,6 @@ line-length = 99
 
 [tool.isort]
 profile = "black"
+
+[tool.mypy]
+mypy_path = "unm_raystation/development/"
