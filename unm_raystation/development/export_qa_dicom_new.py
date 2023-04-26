@@ -26,7 +26,7 @@ __license__ = "MIT"
 import datetime
 import json
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Literal, Optional
 
 import pydicom as dicom
 from util_file_operations import (
@@ -85,6 +85,12 @@ class ExportPatientQA:
         return sub_directory
 
     def get_relevant_verification_plans(self) -> List[PyScriptObject]:
+        """
+        This function was created because get_current does not support get VerificationPlan.
+        So the workaround was to get a list of all verification plans associated with the active beam set's DicomPlanLabel
+        and PhantomName of interest.
+        """
+
         # Find relevant verification plans for current selected beam set
         relevant_verification_plans = []
         for verification_plan in self.verification_plans:
@@ -133,8 +139,13 @@ class ExportPatientQA:
         except ValueError:
             print("Error reading completion messages.")
 
-    def export_qa(self):
-        relevant_verification_plans = self.get_relevant_verification_plans()
+    def export_qa(self, verification_plan_setting: Literal["all", "last"] = "all"):
+        if verification_plan_setting == "all":
+            relevant_verification_plans = self.get_relevant_verification_plans()
+        elif verification_plan_setting == "last":
+            relevant_verification_plans = self.verification_plans[-1]
+        else:
+            raise ValueError("verification_plan_setting must be either 'all' or 'last'.")
 
         for verification_plan in relevant_verification_plans:
             try:
@@ -169,3 +180,7 @@ class ExportPatientQA:
             except SystemError as error:
                 # The script failed due to warnings or errors.
                 self.LogWarning(error)
+
+if __name__ == "__main__":
+    export_patient_qa = ExportPatientQA()
+    export_patient_qa.export_qa(verification_plan_setting="all")
