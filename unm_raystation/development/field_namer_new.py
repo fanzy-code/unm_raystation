@@ -1,22 +1,22 @@
 """
-    field_namer script to rename treatment beams and setup beams to UNM naming convention
+field_namer script to rename treatment beams and setup beams to UNM naming convention
 
-    Supported beam properties:
-        - Arc or Static
-        - Bolus
-        - Gantry position or source position
-        - Couch position
-        - BeamSet name
-    Rename isocenters to beam set name, supports multiple isocenters
+Supported beam properties:
+    - Arc or Static
+    - Bolus
+    - Gantry position or source position
+    - Couch position
+    - BeamSet name
+Rename isocenters to beam set name, supports multiple isocenters
     Last setup field is always named as XVI
 
-    Features:
+Features:
 
-    Makes best guess for field numbering based on the existing fields in the treatment planning system
-    Prompts user with GUI to verify starting number inputs
-    Validates user input
-    Handles beam name and beam description duplicates
-    Handles isocenter name duplicates
+Makes best guess for field numbering based on the existing fields in the treatment planning system
+Prompts user with GUI to verify starting number inputs
+Validates user input
+Handles beam name and beam description duplicates
+Handles isocenter name duplicates
 
 
 """

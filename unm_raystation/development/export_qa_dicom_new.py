@@ -1,22 +1,22 @@
-""" export qa dicom
+""" 
+export_qa_dicom
 
-    Adapted from RayStation example script Example_06_DICOM_QA_export.py, 
-    this script exports all QA plans for phantom_name to base_qa_directory and performs renaming of
-    RP and RD files to something more meaningful.  
+Adapted from RayStation example script Example_06_DICOM_QA_export.py, 
+this script exports all QA plans for phantom_name to base_qa_directory and performs renaming of
+RP and RD files to something more meaningful.  
 
-    TODO:
-    - Import paths from fixture instead of defining here
-    - separate functions out of main and use python boiler plate
+TODO:
+- Import paths from fixture instead of defining here
 
-    Features To Do:
-    - Remove hard coding of phantom_name by:
-     Allowing user to select the verification plan to export (this is necessary because get_current does not support get VerificationPlan,
-     workaround by listing all verification plans associated with active beam set and prompt user to select one for export if necessary (>1)
-    - Check for final dose
+Features To Do:
+- Remove hard coding of phantom_name by:
+    Allowing user to select the verification plan to export (this is necessary because get_current does not support get VerificationPlan,
+    workaround by listing all verification plans associated with active beam set and prompt user to select one for export if necessary (>1)
+- Check for final dose
 
-    RELEASE NOTES:
-    Turn on SNC_ArcCheck Phantom instead of ICP
-    """
+RELEASE NOTES:
+Turn on SNC_ArcCheck Phantom instead of ICP
+"""
 
 __author__ = "Michael Fan and Jorge Zavala"
 __contact__ = "mfan1@unmmg.org"

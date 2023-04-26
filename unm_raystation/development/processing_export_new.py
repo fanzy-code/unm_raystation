@@ -1,17 +1,16 @@
 """
-    processing_export script to send various DICOM data to multiple locations
+processing_export script to send various DICOM data to multiple locations
 
-    Features:
-    Multiple beam_sets support
-    Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
-    Dynamic ExportFolder names, for machine specific folders
-    GUI with toggle-able options for changing what needs to be sent
-    User feedback for status of exports: Completed, Skipped, or Error
-    Full report log for end result
+Features:
+Multiple beam_sets support
+Pre-configured DICOM or ExportFolder Destinations with default options for active CT, RTSS, RTPlan, BeamSet Dose/BeamSet BeamDose, DRRs
+Dynamic ExportFolder names, for machine specific folders
+GUI with toggle-able options for changing what needs to be sent
+User feedback for status of exports: Completed, Skipped, or Error
+Full report log for end result
 
-    
-    TODO: ...
 
+TODO: ...
 
 """
 __author__ = "Michael Fan"

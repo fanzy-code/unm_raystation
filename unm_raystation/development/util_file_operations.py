@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 import pydicom as dicom
+from pydicom.dataset import FileDataset
 from util_raystation_general import slugify
 
 
@@ -168,11 +169,11 @@ class DicomNamer:
     RD_beam_filename_placeholder = "RD_{beam_name}_{beam_description}"
     RP_filename_placeholder = "RP_{plan_name}"
 
-    def __init__(self, dcm, new_patient_name: str = "", new_patient_id: str = ""):
+    def __init__(self, dcm: FileDataset, new_patient_name: str = "", new_patient_id: str = ""):
         if not isinstance(dcm, dicom.dataset.FileDataset):
             raise TypeError("dcm must be an instance of pydicom.dataset.FileDataset")
 
-        self.dcm = dcm
+        self.dcm: FileDataset = dcm
         self.last_name: str = ""
         self.first_name: str = ""
         self.middle_name: str = ""
