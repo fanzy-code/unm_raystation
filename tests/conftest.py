@@ -27,8 +27,11 @@ sys.path.append(connect_path)
 # Assemblies
 dll_directory = ROOT_DIR + "\\assemblies\\"
 sys.path.append(dll_directory)
+
+
 import clr  # type: ignore
 
 clr.AddReference("System")  # System = System.dll
 clr.AddReference("System.Windows")  # System.Windows = PresentationCore.dll
-clr.AddReference("PresentationFramework")  # System.Windows.Controls = PresentationFramework.dll
+# clr.AddReference("System.Runtime")
+# clr.AddReference("System.Runtime.InteropServices")
