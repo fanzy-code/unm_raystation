@@ -388,3 +388,11 @@ class DCMExportDestination:
             logging.info(f"Export incomplete, {error}")
 
         return status_message, log_message
+
+
+if __name__ == "__main__":
+    from util_raystation_general import raise_error
+
+    test_error = "This script is not meant to be run directly!  This script contains helper functions for other scripts."
+    test_exception_message = Exception
+    raise_error(test_error, test_exception_message)

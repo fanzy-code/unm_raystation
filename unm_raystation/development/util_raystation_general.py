@@ -35,7 +35,7 @@ class ErrorWindow(RayWindow):
         """Initialize the window."""
         xaml = """
         <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
-                Title="Error message" Height="Auto" Width="700">
+                        Title="Error message" Height="425" Width="700">
             <Grid Margin="10,10,10,10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="100" />
@@ -77,7 +77,7 @@ class ErrorWindow(RayWindow):
         self.LoadComponent(xaml)
 
         self.error_message.Text = html.escape(error_message)
-        self.traceback_message.Text = html.escape(rs_exception_error)
+        self.traceback_message.Text = str(rs_exception_error)
 
     def CancelClicked(self, sender, event):
         # Close window.
@@ -101,6 +101,7 @@ def raise_error(error_message: str, rs_exception_error: Any) -> None:
 
     error_window = ErrorWindow(error_message, rs_exception_error)
     error_window.ShowDialog()
+    return
 
 
 def get_current_helper(input: str) -> PyScriptObject:
@@ -188,3 +189,9 @@ def slugify(value: str, allow_unicode: bool = False) -> str:
         value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     value = re.sub(r"[^\w\s-]", "", value)
     return re.sub(r"[-\s]+", "-", value).strip("-_")
+
+
+if __name__ == "__main__":
+    test_error = "This script is not meant to be run directly!  This script contains helper functions for other scripts."
+    test_exception_message = Exception
+    raise_error(test_error, test_exception_message)

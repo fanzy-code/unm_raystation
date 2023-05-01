@@ -32,6 +32,8 @@ sys.path.append(dll_directory)
 import clr  # type: ignore
 
 clr.AddReference("System")  # System = System.dll
-clr.AddReference("System.Windows")  # System.Windows = PresentationCore.dll
+clr.AddReference(
+    "System.Windows"
+)  # System.Windows = PresentationCore.dll, PresentationFramework.dll
 # clr.AddReference("System.Runtime")
 # clr.AddReference("System.Runtime.InteropServices")

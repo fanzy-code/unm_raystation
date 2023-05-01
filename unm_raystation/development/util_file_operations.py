@@ -428,3 +428,11 @@ class DicomNamer:
         new_filepath = os.path.join(self.root_dir, new_filename)
         rename_file(self.file_path, new_filepath, delete=False)
         return new_filepath
+
+
+if __name__ == "__main__":
+    from util_raystation_general import raise_error
+
+    test_error = "This script is not meant to be run directly!  This script contains helper functions for other scripts."
+    test_exception_message = Exception
+    raise_error(test_error, test_exception_message)
