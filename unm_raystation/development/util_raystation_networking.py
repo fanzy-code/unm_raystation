@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from util_raystation_general import get_current_helper
 
+from connect import PyScriptObject
+
 
 @dataclass
 class DicomSCP:

@@ -1,7 +1,7 @@
 import pytest
 
 from definitions import ROOT_DIR
-from unm_raystation.development.util_file_operations import *  # type: ignore
+from unm_raystation.development.util_file_operations import *
 
 
 def test_get_new_filename():
