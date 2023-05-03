@@ -139,11 +139,14 @@ class ExportPatientQA:
         except ValueError:
             print("Error reading completion messages.")
 
-    def export_qa(self, verification_plan_setting: Literal["all", "last"] = "all"):
+    def export_qa_plan(self, verification_plan_setting: Literal["all", "last"] = "all"):
         if verification_plan_setting == "all":
             relevant_verification_plans = self.get_relevant_verification_plans()
         elif verification_plan_setting == "last":
-            relevant_verification_plans = self.verification_plans[-1]
+            num_verification_plans = len(self.plan.VerificationPlans)
+            relevant_verification_plans = [
+                self.verification_plans[num_verification_plans - 1]
+            ]  # self.plan.VerificationPlans[-1] does not work because it has to call RayStation API
         else:
             raise ValueError("verification_plan_setting must be either 'all' or 'last'.")
 
@@ -184,4 +187,4 @@ class ExportPatientQA:
 
 if __name__ == "__main__":
     export_patient_qa = ExportPatientQA()
-    export_patient_qa.export_qa(verification_plan_setting="all")
+    export_patient_qa.export_qa_plan(verification_plan_setting="all")
