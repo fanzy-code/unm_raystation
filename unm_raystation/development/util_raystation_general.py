@@ -93,11 +93,6 @@ def raise_error(error_message: str, rs_exception_error: Any) -> None:
         rs_exception_error (Exception): Exception error passed
 
     """
-    # raise Exception(
-    #     "{error_message}\n\nException: {rs_exception_error}".format(
-    #         error_message=error_message, rs_exception_error=rs_exception_error
-    #     )
-    # )
 
     error_window = ErrorWindow(error_message, rs_exception_error)
     error_window.ShowDialog()

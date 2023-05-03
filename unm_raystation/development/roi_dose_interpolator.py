@@ -25,6 +25,7 @@ structure_set.RoiGeometries[roi_name]
 for beam_dose in beam_set.FractionDose.BeamDoses:
     average = beam_dose.GetDoseStatistic(RoiName=roi_name, DoseType=dose_type)
     result[beam_dose.ForBeam.Name] = average
+
 # Results are unformatted, sorry
 print(result)
 

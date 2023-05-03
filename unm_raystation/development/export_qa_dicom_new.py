@@ -181,6 +181,7 @@ class ExportPatientQA:
                 # The script failed due to warnings or errors.
                 self.LogWarning(error)
 
+
 if __name__ == "__main__":
     export_patient_qa = ExportPatientQA()
     export_patient_qa.export_qa(verification_plan_setting="all")
