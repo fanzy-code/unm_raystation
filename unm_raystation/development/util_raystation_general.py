@@ -29,7 +29,7 @@ from System.Windows.Controls import *  # type: ignore
 
 
 class ErrorWindow(RayWindow):
-    """Window to display error messages."""
+    """WPF window to display error messages, allow user to copy error message to clipboard."""
 
     def __init__(self, error_message: str, rs_exception_error: str):
         """Initialize the window."""
@@ -97,7 +97,7 @@ def raise_error(error_message: str, rs_exception_error: Any) -> None:
 
     error_window = ErrorWindow(error_message, rs_exception_error)
     error_window.ShowDialog()
-    return
+    raise Exception(error_message, rs_exception_error)
 
 
 def get_current_helper(input: str) -> PyScriptObject:
@@ -130,7 +130,7 @@ def get_current_helper(input: str) -> PyScriptObject:
     try:
         output = get_current(input)
     except Exception as rs_exception_error:
-        error_message = f"Unable to get {input}."
+        error_message = f"{input} could not be loaded."
         raise_error(error_message=error_message, rs_exception_error=rs_exception_error)
     return output
 

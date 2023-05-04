@@ -29,11 +29,13 @@ __license__ = "MIT"
 
 import logging
 import re
+from typing import Literal
 
 from util_raystation_general import get_current_helper, raise_error
 
 import System
 from connect import *
+from connect import PyScriptObject
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
@@ -43,42 +45,29 @@ class PatientWrapper:
 
     # Initialize with patient and beam_set object
     # Workaround provided by Yibing Wang on Raystation community scripting forums
-    def __init__(self, patient, beam_set):
-        self._Patient = patient
-        self._BeamSet = beam_set
+    def __init__(self, patient: PyScriptObject, beam_set: PyScriptObject):
+        self._Patient: PyScriptObject = patient
+        self._BeamSet: PyScriptObject = beam_set
 
-    def get_all_beam_names(self, beam_type):
-        # Function to get all beam names of the patient for beam_type = 'Treatment' or 'Setup'
-        # Ignores current beam set
+    def get_all_beam_names(self, beam_type: Literal["Treatment", "Setup"]) -> list:
+        """
+        Function to get all beam names (excluding current beam set) of the patient for beam_type = 'Treatment' or 'Setup'
 
-        # Get all cases
-        cases = [case for case in self._Patient.Cases]
+        :param beam_type: type of beam, either 'Treatment' or 'Setup'
+        :return: list of all beam names for the specified beam type
+        """
 
-        # Initialize a list
         beam_names = []
-
-        # Nested for loop through all cases, plans, and beam_sets
-        for case in cases:
+        for case in self._Patient.Cases:
             for plan in case.TreatmentPlans:
                 for beam_set in plan.BeamSets:
-                    # Exclude current beam_set
                     if beam_set.UniqueId == self._BeamSet.UniqueId:
                         continue
-
-                    # Wrap the current plan and beam set to get wrapper functions
                     beam_set_wrapper = BeamSetWrapper(plan, beam_set)
-
-                    # Append TX beam names
                     if beam_type == "Treatment":
-                        beam_names.append(beam_set_wrapper.get_beam_names())
-
-                    # Append patient setup beams
-                    if beam_type == "Setup":
-                        beam_names.append(beam_set_wrapper.get_setup_beam_names())
-
-        # Flattens the list
-        # See https://stackoverflow.com/questions/952914/how-do-i-make-a-flat-list-out-of-a-list-of-lists
-        beam_names = [item for sublist in beam_names for item in sublist]
+                        beam_names += beam_set_wrapper.get_beam_names()
+                    elif beam_type == "Setup":
+                        beam_names += beam_set_wrapper.get_setup_beam_names()
 
         return beam_names
 
