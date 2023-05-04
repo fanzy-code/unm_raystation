@@ -23,19 +23,17 @@ Handles isocenter name duplicates
 
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 __license__ = "MIT"
 
-
-# Code block for importing RayStation System modules
 
 import logging
 import re
 
 from util_raystation_general import get_current_helper, raise_error
 
-import System  # type: ignore
-from connect import *  # type: ignore
+import System
+from connect import *
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 

@@ -14,8 +14,7 @@ Features To Do:
     workaround by listing all verification plans associated with active beam set and prompt user to select one for export if necessary (>1)
 - Check for final dose
 
-RELEASE NOTES:
-Turn on SNC_ArcCheck Phantom instead of ICP
+
 """
 
 __author__ = "Michael Fan and Jorge Zavala"
@@ -25,10 +24,8 @@ __license__ = "MIT"
 
 import datetime
 import json
-from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Literal, Optional
+from typing import List, Literal
 
-import pydicom as dicom
 from util_file_operations import (
     clean_working_directory_dcm,
     create_sub_directory,
@@ -46,22 +43,26 @@ from connect import PyScriptObject
 
 class ExportPatientQA:
     def __init__(self):
-        self.phantom_name = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
-        self.base_qa_directory = "//health/hsc_departments/crtc/DEPS/PHYSICS/PatientQA/IMRT QA"
-        self.sub_directory_format = "{machine_name}/{year}/{month}/{patient_name}/{qa_plan_name}"
-        self.archive_directory = False
+        self.phantom_name: str = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
+        self.base_qa_directory: str = (
+            "//health/hsc_departments/crtc/DEPS/PHYSICS/PatientQA/IMRT QA"
+        )
+        self.sub_directory_format: str = (
+            "{machine_name}/{year}/{month}/{patient_name}/{qa_plan_name}"
+        )
+        self.archive_directory: bool = False
 
         # Load patient, case, beamset data
-        self.patient = get_current_helper("Patient")
-        self.case = get_current_helper("Case")
-        self.plan = get_current_helper("Plan")
-        self.beam_set = get_current_helper("BeamSet")
+        self.patient: PyScriptObject = get_current_helper("Patient")
+        self.case: PyScriptObject = get_current_helper("Case")
+        self.plan: PyScriptObject = get_current_helper("Plan")
+        self.beam_set: PyScriptObject = get_current_helper("BeamSet")
 
         save_patient(self.patient)
 
-        self.verification_plans = self.plan.VerificationPlans
+        self.verification_plans: List[PyScriptObject] = self.plan.VerificationPlans
 
-    def get_sub_directory_path(self, verification_plan):
+    def get_sub_directory_path(self, verification_plan: PyScriptObject) -> str:
         machine_name = slugify(verification_plan.BeamSet.MachineReference.MachineName)
         year = str(datetime.datetime.now().year)
         month = "{:02d}_{month}".format(
@@ -106,7 +107,7 @@ class ExportPatientQA:
 
         return relevant_verification_plans
 
-    def LogWarning(self, error):
+    def LogWarning(self, error) -> None:
         try:
             jsonWarnings = json.loads(str(error))
             # If the json.loads() works then the script was stopped due to
@@ -122,7 +123,7 @@ class ExportPatientQA:
         except ValueError:
             print("Error occurred. Could not export.")
 
-    def LogCompleted(self, result):
+    def LogCompleted(self, result) -> None:
         try:
             jsonWarnings = json.loads(str(result))
             print("Completed!")
@@ -139,7 +140,7 @@ class ExportPatientQA:
         except ValueError:
             print("Error reading completion messages.")
 
-    def export_qa_plan(self, verification_plan_setting: Literal["all", "last"] = "all"):
+    def export_qa_plan(self, verification_plan_setting: Literal["all", "last"] = "all") -> None:
         if verification_plan_setting == "all":
             relevant_verification_plans = self.get_relevant_verification_plans()
         elif verification_plan_setting == "last":
@@ -183,6 +184,8 @@ class ExportPatientQA:
             except SystemError as error:
                 # The script failed due to warnings or errors.
                 self.LogWarning(error)
+
+        return
 
 
 if __name__ == "__main__":

@@ -76,12 +76,13 @@ class ErrorWindow(RayWindow):
 
         self.LoadComponent(xaml)
 
-        self.error_message.Text = html.escape(error_message)
-        self.traceback_message.Text = str(rs_exception_error)
+        self.error_message.Text: str = html.escape(error_message)
+        self.traceback_message.Text: str = str(rs_exception_error)
 
-    def CancelClicked(self, sender, event):
+    def CancelClicked(self, sender, event) -> None:
         # Close window.
         self.DialogResult = False
+        return
 
 
 def raise_error(error_message: str, rs_exception_error: Any) -> None:

@@ -3,34 +3,43 @@ Create a new QA plan for the current beamset
 
 """
 
+__author__ = "Michael Fan"
+__contact__ = "mfan1@unmmg.org"
+__version__ = "1.0.0"
+__license__ = "MIT"
+
+
+from typing import Dict, Optional
 
 from util_raystation_general import get_current_helper, save_patient
+
+from connect import PyScriptObject
 
 
 class CreatePatientQA:
     def __init__(self):
         # QA Plan creation parameters
-        self.phantom_name = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
-        self.phantom_id = "SNC_ArcCheck"
-        self.isocenter = {"x": 0, "y": 0.05, "z": 0}
-        self.dose_grid = {
+        self.phantom_name: str = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
+        self.phantom_id: str = "SNC_ArcCheck"
+        self.isocenter: Dict[str, float] = {"x": 0, "y": 0.05, "z": 0}
+        self.dose_grid: Dict[str, float] = {
             "x": 0.25,
             "y": 0.25,
             "z": 0.25,
         }  # plan voxelsize beam_set.FractionDose.InDoseGrid.VoxelSize
-        self.GantryAngle = None
-        self.CollimatorAngle = None
-        self.CouchRotationAngle = 0
-        self.ComputeDose = True
+        self.GantryAngle: Optional[float] = None
+        self.CollimatorAngle: Optional[float] = None
+        self.CouchRotationAngle: Optional[float] = 0
+        self.ComputeDose: bool = True
 
         # Load patient, case, beamset data
-        self.patient = get_current_helper("Patient")
-        self.case = get_current_helper("Case")
-        self.plan = get_current_helper("Plan")
-        self.beam_set = get_current_helper("BeamSet")
+        self.patient: PyScriptObject = get_current_helper("Patient")
+        self.case: PyScriptObject = get_current_helper("Case")
+        self.plan: PyScriptObject = get_current_helper("Plan")
+        self.beam_set: PyScriptObject = get_current_helper("BeamSet")
         save_patient(self.patient)
 
-    def get_QA_plan_name(self):
+    def get_QA_plan_name(self) -> str:
         prefix = "QA"
         i = 0
         while True:
@@ -42,7 +51,7 @@ class CreatePatientQA:
             if not name_conflict:
                 return name
 
-    def create_qa_plan(self):
+    def create_qa_plan(self) -> PyScriptObject:
         name = self.get_QA_plan_name()
         self.beam_set.CreateQAPlan(
             PhantomName=self.phantom_name,
