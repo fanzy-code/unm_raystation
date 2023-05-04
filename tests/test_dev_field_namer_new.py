@@ -17,32 +17,32 @@ def mock_patient():
 
     # Treatment Beam objects
     beam1 = MagicMock()
-    beam1.Name = "Beam1"
+    beam1.Name = "A01"
 
     beam2 = MagicMock()
-    beam2.Name = "Beam2"
+    beam2.Name = "A02"
 
     beam3 = MagicMock()
-    beam3.Name = "Beam3"
+    beam3.Name = "A03"
 
     beam4 = MagicMock()
-    beam4.Name = "Beam4"
+    beam4.Name = "A04"
 
     # PatientSetup
     PatientSetup = MagicMock()
 
     # Setup Beams
     setupbeam1 = MagicMock()
-    setupbeam1.Name = "SetupBeam1"
+    setupbeam1.Name = "SU01"
 
     setupbeam2 = MagicMock()
-    setupbeam2.Name = "SetupBeam2"
+    setupbeam2.Name = "SU02"
 
     setupbeam3 = MagicMock()
-    setupbeam3.Name = "SetupBeam3"
+    setupbeam3.Name = "SU03"
 
     setupbeam4 = MagicMock()
-    setupbeam4.Name = "SetupBeam4"
+    setupbeam4.Name = "XVI01"
 
     # Set up case 1 with beamset 1
     case1.TreatmentPlans = [plan1]
@@ -74,11 +74,14 @@ def patient_wrapper(mock_patient):
 
 
 def test_get_all_beam_names(patient_wrapper):
+    """Tests PatientWrapper initialization, and get_all_beam_names method by passing Mock objects into BeamSetWrapper
+    and then using its get_beam_names and get_setu_beam_names methods."""
+
     # Test get_all_beam_names for treatment beams only
-    assert patient_wrapper.get_all_beam_names("Treatment") == ["Beam3", "Beam4"]
+    assert patient_wrapper.get_all_beam_names("Treatment") == ["A03", "A04"]
 
     # Test get_all_beam_names for setup beams only
     assert patient_wrapper.get_all_beam_names("Setup") == [
-        "SetupBeam3",
-        "SetupBeam4",
+        "SU03",
+        "XVI01",
     ]

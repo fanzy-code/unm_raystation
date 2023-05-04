@@ -49,6 +49,10 @@ class PatientWrapper:
         self._Patient: PyScriptObject = patient
         self._BeamSet: PyScriptObject = beam_set
 
+        self.regex_string_for_tx_beam_name = "(?<=A)?\\d+(?=(?:B|$))"
+        self.regex_string_for_su_beam_name = "(?<=SU)\\d+"
+        self.regex_string_for_xvi_beam_name = "(?<=XVI)\\d+"
+
     def get_all_beam_names(self, beam_type: Literal["Treatment", "Setup"]) -> list:
         """
         Function to get all beam names (excluding current beam set) of the patient for beam_type = 'Treatment' or 'Setup'
@@ -71,8 +75,16 @@ class PatientWrapper:
 
         return beam_names
 
-    def guess_starting_beam_number(self, re_match_string, previous_beam_list):
+    def guess_starting_beam_number(
+        self, beam_type: Literal["Treatment", "Setup", "XVI"], previous_beam_list
+    ):
         # Use regular expression to determine best guess of previous_beam_list
+        if beam_type == "Treatment":
+            re_match_string = self.regex_string_for_tx_beam_name
+        elif beam_type == "Setup":
+            re_match_string = self.regex_string_for_su_beam_name
+        elif beam_type == "XVI":
+            re_match_string = self.regex_string_for_xvi_beam_name
 
         # Iterate over previous_beam_list and find matches to regular expression string
         match_list = []
@@ -115,7 +127,7 @@ class BeamSetWrapper:
         )
         return
 
-    def get_beam_names(self):
+    def get_beam_names(self) -> list:
         # Returns a list of current beam_names
         return [beam.Name for beam in self._BeamSet.Beams]
 
@@ -123,7 +135,7 @@ class BeamSetWrapper:
         # Returns a list of current beam descriptions
         return [beam.Description for beam in self._BeamSet.Beams]
 
-    def get_setup_beam_names(self):
+    def get_setup_beam_names(self) -> list:
         # Returns a list of current setup_beam_names
         return [setup_beam.Name for setup_beam in self._BeamSet.PatientSetup.SetupBeams]
 
@@ -543,13 +555,13 @@ def main_field_namer():
     ]
 
     starting_tx_beam_number = patient_wrapper.guess_starting_beam_number(
-        "(?<=A)?\d+(?=(?:B|$))", previous_tx_beam_names
+        "Treatment", previous_tx_beam_names
     )
     starting_su_beam_number = patient_wrapper.guess_starting_beam_number(
-        "(?<=SU)\d+", previous_su_beam_names
+        "Setup", previous_su_beam_names
     )
     starting_xvi_beam_number = patient_wrapper.guess_starting_beam_number(
-        "(?<=XVI)\d+", previous_su_beam_names
+        "XVI", previous_su_beam_names
     )
 
     # Rename isocenter default option
