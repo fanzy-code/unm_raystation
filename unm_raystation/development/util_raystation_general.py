@@ -85,7 +85,7 @@ class ErrorWindow(RayWindow):
         return
 
 
-def raise_error(error_message: str, rs_exception_error: Any) -> None:
+def raise_error(error_message: str, rs_exception_error: Any, terminate=False) -> None:
     """
     Returns a GUI error message and the RayStation exception error for traceback
 
@@ -97,7 +97,9 @@ def raise_error(error_message: str, rs_exception_error: Any) -> None:
 
     error_window = ErrorWindow(error_message, rs_exception_error)
     error_window.ShowDialog()
-    raise Exception(error_message, rs_exception_error)
+    if terminate:
+        raise Exception(error_message, rs_exception_error)
+    return
 
 
 def get_current_helper(input: str) -> PyScriptObject:
