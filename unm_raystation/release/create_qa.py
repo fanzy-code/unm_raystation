@@ -46,6 +46,10 @@ if len(list(plan.VerificationPlans)) > 0:
 # Dose Grid
 # resolution = beam_set.FractionDose.InDoseGrid.VoxelSize
 
+xsize = beam_set.FractionDose.InDoseGrid.VoxelSize.x
+ysize = beam_set.FractionDose.InDoseGrid.VoxelSize.y
+zsize = beam_set.FractionDose.InDoseGrid.VoxelSize.z
+
 
 # Create QA Plan:
 
@@ -54,7 +58,7 @@ beam_set.CreateQAPlan(
     PhantomId="SNC_ArcCheck",
     QAPlanName=name,
     IsoCenter={"x": 0, "y": 0.05, "z": 0},
-    DoseGrid={"x": 0.25, "y": 0.25, "z": 0.25},
+    DoseGrid={"x": xsize, "y": ysize, "z": zsize},
     GantryAngle=None,
     CollimatorAngle=None,
     CouchRotationAngle=0,

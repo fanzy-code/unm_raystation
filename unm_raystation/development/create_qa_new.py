@@ -3,7 +3,7 @@ Create a new QA plan for the current beamset
 
 """
 
-__author__ = "Michael Fan"
+__author__ = "Christopher Hooper, Michael Fan"
 __contact__ = "mfan1@unmmg.org"
 __version__ = "1.0.0"
 __license__ = "MIT"
@@ -18,26 +18,26 @@ from connect import PyScriptObject
 
 class CreatePatientQA:
     def __init__(self):
-        # QA Plan creation parameters
-        self.phantom_name: str = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
-        self.phantom_id: str = "SNC_ArcCheck"
-        self.isocenter: Dict[str, float] = {"x": 0, "y": 0.05, "z": 0}
-        self.dose_grid: Dict[str, float] = {
-            "x": 0.25,
-            "y": 0.25,
-            "z": 0.25,
-        }  # plan voxelsize beam_set.FractionDose.InDoseGrid.VoxelSize
-        self.GantryAngle: Optional[float] = None
-        self.CollimatorAngle: Optional[float] = None
-        self.CouchRotationAngle: Optional[float] = 0
-        self.ComputeDose: bool = True
-
         # Load patient, case, beamset data
         self.patient: PyScriptObject = get_current_helper("Patient")
         self.case: PyScriptObject = get_current_helper("Case")
         self.plan: PyScriptObject = get_current_helper("Plan")
         self.beam_set: PyScriptObject = get_current_helper("BeamSet")
         save_patient(self.patient)
+
+        # QA Plan creation parameters
+        self.phantom_name: str = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
+        self.phantom_id: str = "SNC_ArcCheck"
+        self.isocenter: Dict[str, float] = {"x": 0, "y": 0.05, "z": 0}
+        self.dose_grid: Dict[str, float] = {
+            "x": self.beam_set.FractionDose.InDoseGrid.VoxelSize.x,
+            "y": self.beam_set.FractionDose.InDoseGrid.VoxelSize.y,
+            "z": self.beam_set.FractionDose.InDoseGrid.VoxelSize.z,
+        }
+        self.GantryAngle: Optional[float] = None
+        self.CollimatorAngle: Optional[float] = None
+        self.CouchRotationAngle: Optional[float] = 0
+        self.ComputeDose: bool = True
 
     def get_QA_plan_name(self) -> str:
         prefix = "QA"
