@@ -19,7 +19,7 @@ __license__ = "MIT"
 import html
 import re
 import unicodedata
-from typing import Any
+from typing import Any, Optional
 
 # RayStation API
 import System
@@ -76,8 +76,8 @@ class ErrorWindow(RayWindow):
 
         self.LoadComponent(xaml)
 
-        self.error_message.Text: str = html.escape(error_message)
-        self.traceback_message.Text: str = str(rs_exception_error)
+        self.error_message.Text = html.escape(error_message)  # type: ignore
+        self.traceback_message.Text = str(rs_exception_error)  # type: ignore
 
     def CancelClicked(self, sender, event) -> None:
         # Close window.
@@ -96,13 +96,14 @@ def raise_error(error_message: str, rs_exception_error: Any, terminate=False) ->
     """
 
     error_window = ErrorWindow(error_message, rs_exception_error)
-    error_window.ShowDialog()
+    error_window.ShowDialog()  # type: ignore
+
     if terminate:
         raise Exception(error_message, rs_exception_error)
     return
 
 
-def get_current_helper(input: str) -> PyScriptObject:
+def get_current_helper(input: str) -> Optional[PyScriptObject]:
     """
     Helper function for connect.get_current function from RayStation.
     Added error logging and messaging.
@@ -136,6 +137,8 @@ def get_current_helper(input: str) -> PyScriptObject:
         raise_error(
             error_message=error_message, rs_exception_error=rs_exception_error, terminate=True
         )
+        return None
+
     return output
 
 
@@ -154,7 +157,7 @@ def save_patient(patient: PyScriptObject) -> None:
 
     if patient.ModificationInfo == None:
         try:
-            patient.Save()
+            patient.Save()  # type: ignore
         except Exception as rs_exception_error:
             error_message = "Unable to save patient."
             raise_error(
