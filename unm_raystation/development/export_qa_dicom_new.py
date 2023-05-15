@@ -60,10 +60,10 @@ class ExportPatientQA:
 
         save_patient(self.patient)
 
-        self.verification_plans: List[PyScriptObject] = self.plan.VerificationPlans
+        self.verification_plans: List[PyScriptObject] = self.plan.VerificationPlans  # type: ignore
 
     def get_sub_directory_path(self, verification_plan: PyScriptObject) -> str:
-        machine_name = slugify(verification_plan.BeamSet.MachineReference.MachineName)
+        machine_name = slugify(verification_plan.BeamSet.MachineReference.MachineName)  # type: ignore
         year = str(datetime.datetime.now().year)
         month = "{:02d}_{month}".format(
             datetime.datetime.now().month, month=datetime.datetime.now().strftime("%B")
@@ -72,7 +72,7 @@ class ExportPatientQA:
             "{name}_{patient_id}".format(name=self.patient.Name, patient_id=self.patient.PatientID)
         )
         qa_plan_name = slugify(
-            "{qa_plan_name}".format(qa_plan_name=verification_plan.BeamSet.DicomPlanLabel)
+            "{qa_plan_name}".format(qa_plan_name=verification_plan.BeamSet.DicomPlanLabel)  # type: ignore
         )
 
         sub_directory = self.sub_directory_format.format(
@@ -96,9 +96,9 @@ class ExportPatientQA:
         relevant_verification_plans = []
         for verification_plan in self.verification_plans:
             if (
-                verification_plan.OfRadiationSet.DicomPlanLabel == self.beam_set.DicomPlanLabel
+                verification_plan.OfRadiationSet.DicomPlanLabel == self.beam_set.DicomPlanLabel  # type: ignore
             ) and (
-                verification_plan.PhantomStudy.PhantomName == self.phantom_name
+                verification_plan.PhantomStudy.PhantomName == self.phantom_name  # type: ignore
             ):  # Find verification plans which match current (active) beam set
                 relevant_verification_plans.append(verification_plan)
 
@@ -144,7 +144,7 @@ class ExportPatientQA:
         if verification_plan_setting == "all":
             relevant_verification_plans = self.get_relevant_verification_plans()
         elif verification_plan_setting == "last":
-            num_verification_plans = len(self.plan.VerificationPlans)
+            num_verification_plans = len(self.plan.VerificationPlans)  # type: ignore
             relevant_verification_plans = [
                 self.verification_plans[num_verification_plans - 1]
             ]  # self.plan.VerificationPlans[-1] does not work because it has to call RayStation API
@@ -171,13 +171,13 @@ class ExportPatientQA:
                     ExportBeamSetDose=True,  # RT Dose Sum
                     ExportBeamSetBeamDose=True,  # RT Dose per beam
                     IgnorePreConditionWarnings=False,
-                )
+                )  # type: ignore
 
                 # Rename the RD and RP files in the folder
                 processing = rename_dicom_RD_RP(
                     os_path=path,
-                    new_patient_name=self.patient.Name,
-                    new_patient_id=self.patient.PatientID,
+                    new_patient_name=self.patient.Name,  # type: ignore
+                    new_patient_id=self.patient.PatientID,  # type: ignore
                 )
 
                 self.LogCompleted(result)
