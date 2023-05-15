@@ -103,7 +103,7 @@ def raise_error(error_message: str, rs_exception_error: Any, terminate=False) ->
     return
 
 
-def get_current_helper(input: str) -> Optional[PyScriptObject]:
+def get_current_helper(input: str) -> PyScriptObject:
     """
     Helper function for connect.get_current function from RayStation.
     Added error logging and messaging.
@@ -132,14 +132,13 @@ def get_current_helper(input: str) -> Optional[PyScriptObject]:
 
     try:
         output = get_current(input)
+        return output
     except Exception as rs_exception_error:
         error_message = f"{input} could not be loaded."
         raise_error(
-            error_message=error_message, rs_exception_error=rs_exception_error, terminate=True
+            error_message=error_message, rs_exception_error=rs_exception_error, terminate=False
         )
-        return None
-
-    return output
+        raise Exception(error_message, rs_exception_error)
 
 
 def save_patient(patient: PyScriptObject) -> None:
