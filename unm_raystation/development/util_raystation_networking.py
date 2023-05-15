@@ -15,7 +15,7 @@ import json
 import logging
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from util_raystation_general import get_current_helper
 
@@ -61,7 +61,7 @@ class DicomSCP:
                     _clinic_db = get_current_helper("ClinicDB")
                     self._allowed_titles = [
                         AE.Title
-                        for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities
+                        for AE in _clinic_db.GetSiteSettings().DicomSettings.DicomApplicationEntities  # type: ignore
                     ]
                 except:
                     logging.warning("Unable to get titles from clinic_db")
@@ -75,7 +75,7 @@ class DicomSCP:
 
 
 @dataclass
-class AnonymizationSettings:
+class AnonSettings:
     Anonymize: bool = False
     AnonymizedName: str = "anonymizedName"
     AnonymizedID: str = "anonymizedID"
@@ -92,7 +92,9 @@ class AnonymizationSettings:
 @dataclass
 class DCMExportDestination:
     name: str
-    AnonymizationSettings: AnonymizationSettings = AnonymizationSettings()
+
+    # Anonymization
+    AnonymizationSettings: AnonSettings = AnonSettings()
 
     # Supported
     Active_CT: bool = False
@@ -292,15 +294,15 @@ class DCMExportDestination:
             "RtStructureSet_from_Active_CT": {
                 "_RtStructureSetsForExaminations": [examination.Name]
             },
-            "Active_RTPlan": {"_BeamSets": [beam_set.BeamSetIdentifier()]},
+            "Active_RTPlan": {"_BeamSets": [beam_set.BeamSetIdentifier()]},  # type: ignore
             "Active_BeamSet_Dose": {
-                "_PhysicalBeamSetDoseForBeamSets": [beam_set.BeamSetIdentifier()]
+                "_PhysicalBeamSetDoseForBeamSets": [beam_set.BeamSetIdentifier()]  # type: ignore
             },
             "Active_BeamSet_BeamDose": {
-                "_PhysicalBeamDosesForBeamSets": [beam_set.BeamSetIdentifier()]
+                "_PhysicalBeamDosesForBeamSets": [beam_set.BeamSetIdentifier()]  # type: ignore
             },
-            "TxBeam_DRRs": {"_TreatmentBeamDrrImages": [beam_set.BeamSetIdentifier()]},
-            "SetupBeam_DRRs": {"_SetupBeamDrrImages": [beam_set.BeamSetIdentifier()]},
+            "TxBeam_DRRs": {"_TreatmentBeamDrrImages": [beam_set.BeamSetIdentifier()]},  # type: ignore
+            "SetupBeam_DRRs": {"_SetupBeamDrrImages": [beam_set.BeamSetIdentifier()]},  # type: ignore
         }
 
         attr_was_set = []
@@ -332,6 +334,7 @@ class DCMExportDestination:
 
     def generate_gui_message(self, beam_set_name, success: bool, result=None) -> Tuple[str, str]:
         log_message = ""
+        name = ""
         if self.ExportFolderPath:
             name = self.ExportFolderPath
         if self.Connection:
@@ -376,7 +379,7 @@ class DCMExportDestination:
                 f"Exporting beam set {beam_set.DicomPlanLabel} to {self.name}, ignoring warnings"
             )
             export_kwargs["IgnorePreConditionWarnings"] = True
-            result = case.ScriptableDicomExport(**export_kwargs)
+            result = case.ScriptableDicomExport(**export_kwargs)  # type: ignore
             status_message, log_message = self.generate_gui_message(
                 beam_set_name=beam_set.DicomPlanLabel, success=True, result=result
             )
