@@ -11,7 +11,7 @@ __license__ = "MIT"
 
 from typing import Dict, Optional
 
-from util_raystation_general import get_current_helper, save_patient
+from util_raystation_general import get_current_helper, raise_error, save_patient
 
 from connect import PyScriptObject
 
@@ -29,10 +29,10 @@ class CreatePatientQA:
         self.phantom_name: str = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
         self.phantom_id: str = "SNC_ArcCheck"
         self.isocenter: Dict[str, float] = {"x": 0, "y": 0.05, "z": 0}
-        self.dose_grid: Dict[str, float] = {
-            "x": self.beam_set.FractionDose.InDoseGrid.VoxelSize.x,
-            "y": self.beam_set.FractionDose.InDoseGrid.VoxelSize.y,
-            "z": self.beam_set.FractionDose.InDoseGrid.VoxelSize.z,
+        self.dose_grid: Dict[str, float] = {  # type: ignore
+            "x": self.beam_set.FractionDose.InDoseGrid.VoxelSize.x,  # type: ignore
+            "y": self.beam_set.FractionDose.InDoseGrid.VoxelSize.y,  # type: ignore
+            "z": self.beam_set.FractionDose.InDoseGrid.VoxelSize.z,  # type: ignore
         }
         self.GantryAngle: Optional[float] = None
         self.CollimatorAngle: Optional[float] = None
@@ -46,7 +46,7 @@ class CreatePatientQA:
             i += 1
             name = prefix + "_" + str(i)
             name_conflict = any(
-                p.BeamSet.DicomPlanLabel == name for p in self.plan.VerificationPlans
+                p.BeamSet.DicomPlanLabel == name for p in self.plan.VerificationPlans  # type: ignore
             )
             if not name_conflict:
                 return name
@@ -63,14 +63,25 @@ class CreatePatientQA:
             CollimatorAngle=self.CollimatorAngle,
             CouchRotationAngle=self.CouchRotationAngle,
             ComputeDoseWhenPlanIsCreated=self.ComputeDose,
-        )
+        )  # type: ignore
 
-        self.patient.Save()
-        num_verification_plans = len(self.plan.VerificationPlans)
-        last_plan = self.plan.VerificationPlans[
+        save_patient(self.patient)
+        num_verification_plans = len(self.plan.VerificationPlans)  # type: ignore
+        last_plan = self.plan.VerificationPlans[  # type: ignore
             num_verification_plans - 1
         ]  # self.plan.VerificationPlans[-1] does not work because it has to call RayStation API
-        return last_plan
+
+        try:
+            last_plan: PyScriptObject = self.plan.VerificationPlans[  # type: ignore
+                num_verification_plans - 1
+            ]  # self.plan.VerificationPlans[-1] does not work because it has to call RayStation API
+            return last_plan
+        except AttributeError as rs_exception_error:
+            error_message = "Unable to get last QA plan."
+            raise_error(
+                error_message=error_message, rs_exception_error=rs_exception_error, terminate=False
+            )
+            raise Exception(error_message, rs_exception_error)
 
 
 if __name__ == "__main__":

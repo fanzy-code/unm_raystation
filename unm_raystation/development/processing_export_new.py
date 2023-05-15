@@ -28,11 +28,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from util_raystation_general import get_current_helper, raise_error, save_patient
-from util_raystation_networking import (
-    AnonymizationSettings,
-    DCMExportDestination,
-    DicomSCP,
-)
+from util_raystation_networking import DCMExportDestination, DicomSCP
 
 import System  # type: ignore
 from connect import *  # type: ignore
