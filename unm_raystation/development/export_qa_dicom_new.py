@@ -103,7 +103,7 @@ class ExportPatientQA:
                 relevant_verification_plans.append(verification_plan)
 
         if len(relevant_verification_plans) == 0:
-            raise_error("Found no verification plan to export.", ValueError)
+            raise_error("Found no verification plan to export.", ValueError, terminate=True)
 
         return relevant_verification_plans
 

@@ -339,7 +339,7 @@ class BeamSetWrapper:
             error_message = (
                 f"Cannot set isocenter {isocenter.Annotation.Name} to new name: {new_name}."
             )
-            raise_error(error_message=error_message, rs_exception_error=error)
+            raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
         return
 
 
@@ -443,7 +443,7 @@ class BeamWrapper:
             except System.InvalidOperationException as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam name {self._Beam.Name} to {beam_name_string}."
-                raise_error(error_message=error_message, rs_exception_error=error)
+                raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
         if not self._Beam.Description == beam_description_string:
             try:
@@ -451,7 +451,7 @@ class BeamWrapper:
             except Exception as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam description {self._Beam.Description} to {beam_description_string}."
-                raise_error(error_message=error_message, rs_exception_error=error)
+                raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
         return
 
@@ -532,7 +532,7 @@ class FieldNamerGUI(RayWindow):  # type: ignore
         except Exception as error:
             logging.exception(error)
             error_message = f"Invalid input for one of the starting beam numbers."
-            raise_error(error_message=error_message, rs_exception_error=error)
+            raise_error(error_message=error_message, rs_exception_error=error, terminate=False)
 
         self.DialogResult = True
 
@@ -597,7 +597,7 @@ def main_field_namer():
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get beams for beam set {beam_set.DicomPlanLabel}."
-        raise_error(error_message=error_message, rs_exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
     new_tx_beam_names_descriptions = beam_set_wrapper.get_new_beam_names_descriptions(
         tx_beams, starting_tx_beam_number
@@ -610,7 +610,7 @@ def main_field_namer():
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get setup beams for beam set {beam_set.DicomPlanLabel}."
-        raise_error(error_message=error_message, rs_exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
     # find last_index to ignore the renaming the last setup beam
     last_index = len(setup_beams) - 1

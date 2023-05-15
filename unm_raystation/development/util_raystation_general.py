@@ -133,7 +133,9 @@ def get_current_helper(input: str) -> PyScriptObject:
         output = get_current(input)
     except Exception as rs_exception_error:
         error_message = f"{input} could not be loaded."
-        raise_error(error_message=error_message, rs_exception_error=rs_exception_error)
+        raise_error(
+            error_message=error_message, rs_exception_error=rs_exception_error, terminate=True
+        )
     return output
 
 
@@ -155,7 +157,9 @@ def save_patient(patient: PyScriptObject) -> None:
             patient.Save()
         except Exception as rs_exception_error:
             error_message = "Unable to save patient."
-            raise_error(error_message=error_message, rs_exception_error=rs_exception_error)
+            raise_error(
+                error_message=error_message, rs_exception_error=rs_exception_error, terminate=True
+            )
     return
 
 

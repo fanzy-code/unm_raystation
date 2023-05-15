@@ -435,4 +435,4 @@ if __name__ == "__main__":
 
     test_error = "This script is not meant to be run directly!  This script contains helper functions for other scripts."
     test_exception_message = Exception
-    raise_error(test_error, test_exception_message)
+    raise_error(test_error, test_exception_message, terminate=False)
