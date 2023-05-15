@@ -26,7 +26,7 @@ from connect import *
 # Import existing scripts from RayStation
 # Jupyter must be launched from the same virtual environment as where the script is contained
 # The script must exist in RayStation script management, I have not tested if the validated state matters
-environment_scripts_path = os.path.join(os.environ['TEMP'], 'RaySearch\RayStation\Scripts', raystation_pid.split('_')[0], raystation_pid)
+environment_scripts_path = os.path.join(os.environ['TEMP'], 'RaySearch\\RayStation\\Scripts', raystation_pid.split('_')[0], raystation_pid)
 sys.path.append(environment_scripts_path)
 import rs_utils
 

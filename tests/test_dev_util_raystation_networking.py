@@ -54,9 +54,9 @@ def test_DicomSCP_with_some_Node_Port_CalledAE_CallingAE_but_not_all():
         dicomscp = DicomSCP(Node="my_node", Port="my_port", CalledAE="my_called_ae")
 
 
-def test_AnonymizationSettings_get_anonymization_settings_dict():
+def test_AnonSettings_get_anonymization_settings_dict():
     # Test case for default values
-    a = AnonymizationSettings()
+    a = AnonSettings()
     expected = {
         "Anonymize": False,
         "AnonymizedName": "anonymizedName",
@@ -70,7 +70,7 @@ def test_AnonymizationSettings_get_anonymization_settings_dict():
     assert a.get_anonymization_settings_dict() == expected
 
     # Test case for non-default values
-    a = AnonymizationSettings(
+    a = AnonSettings(
         Anonymize=True,
         AnonymizedName="test_name",
         AnonymizedID="test_id",
@@ -96,7 +96,7 @@ def test_AnonymizationSettings_get_anonymization_settings_dict():
 def test_DCMExportDestination_init():
     # Test case for valid input with connection
     conn = DicomSCP(Title="TestTitle", _allowed_titles=["TestTitle"])
-    a = AnonymizationSettings()
+    a = AnonSettings()
     d = DCMExportDestination(name="TestName", Connection=conn)
     assert d.name == "TestName"
     assert d.AnonymizationSettings == a
@@ -104,7 +104,7 @@ def test_DCMExportDestination_init():
     assert d.ExportFolderPath is None
 
     # Test case for valid input with export folder path
-    a = AnonymizationSettings()
+    a = AnonSettings()
     d = DCMExportDestination(name="TestName", ExportFolderPath="/path/to/export")
     assert d.name == "TestName"
     assert d.AnonymizationSettings == a
