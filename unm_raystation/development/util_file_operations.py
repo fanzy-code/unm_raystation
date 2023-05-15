@@ -140,12 +140,9 @@ def rename_dicom_RD_RP(os_path: str, new_patient_name: str = "", new_patient_id:
     filename_wildcard = "*.dcm"
     filename_list = glob.glob(os.path.join(os_path, filename_wildcard))
 
-    dicom_read_file_typed: Callable[[str], dicom.dataset.FileDataset] = dicom.read_file
-
     # Read files, pass into DicomNamer class
     dicomnamer_list = [
-        DicomNamer(dicom_read_file_typed(file), new_patient_name, new_patient_id)
-        for file in filename_list
+        DicomNamer(dicom.dcmread(file), new_patient_name, new_patient_id) for file in filename_list
     ]
 
     # Set beam sequence properties for RTDose with Beam doses
@@ -170,7 +167,7 @@ class DicomNamer:
     RP_filename_placeholder = "RP_{plan_name}"
 
     def __init__(self, dcm: FileDataset, new_patient_name: str = "", new_patient_id: str = ""):
-        if not isinstance(dcm, dicom.dataset.FileDataset):
+        if not isinstance(dcm, FileDataset):
             raise TypeError("dcm must be an instance of pydicom.dataset.FileDataset")
 
         self.dcm: FileDataset = dcm
@@ -306,6 +303,9 @@ class DicomNamer:
         # Dose Summation Type, "PLAN" or "BEAM"
         summation_type = dcm.DoseSummationType
 
+        # Referenced beam number, applicable to dose summation type == "BEAM", the plan summation type does not reference to any beams
+        ref_beam_number = None
+
         # Read referenced beam number, all this code because there could be multiple referenced fraction group sequences or beam sequences
         if summation_type == "BEAM":
             num_ref_fgs = len(dcm.ReferencedRTPlanSequence[0].ReferencedFractionGroupSequence)
@@ -333,7 +333,7 @@ class DicomNamer:
                 .ReferencedBeamNumber
             )
         elif summation_type == "PLAN":
-            ref_beam_number = None
+            pass
 
         rd_info_dict = {
             "referenced_rtplan_uid": ref_plan_uid,
@@ -409,6 +409,7 @@ class DicomNamer:
         return "pass"
 
     def get_new_name(self) -> str:
+        new_filename = "tempName"
         if self.modality == "RTPLAN":
             new_filename = self.RP_filename_placeholder.format(plan_name=self.plan_name)
 
