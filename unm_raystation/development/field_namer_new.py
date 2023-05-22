@@ -62,7 +62,16 @@ class PatientWrapper:
         """
 
         beam_names = []
-        for case in self._Patient.Cases:
+        cases = []
+
+        try:
+            cases = list(self._Patient.Cases)  # type: ignore
+        except Exception as error:
+            logging.exception(error)
+            error_message = f"Could not get cases for current patient."
+            raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
+
+        for case in cases:
             for plan in case.TreatmentPlans:
                 for beam_set in plan.BeamSets:
                     if beam_set.UniqueId == self._BeamSet.UniqueId:
@@ -440,7 +449,7 @@ class BeamWrapper:
         if not self._Beam.Name == beam_name_string:
             try:
                 self._Beam.Name = beam_name_string
-            except System.InvalidOperationException as error:
+            except System.InvalidOperationException as error:  # type: ignore
                 logging.exception(error)
                 error_message = f"Cannot set beam name {self._Beam.Name} to {beam_name_string}."
                 raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
@@ -508,10 +517,10 @@ class FieldNamerGUI(RayWindow):  # type: ignore
     ):
         """Initialize the GUI window with starting numbers"""
         self.LoadComponent(self.field_namer_xaml)
-        self.starting_tx_beam_number_input.Text = str(starting_tx_beam_number)
-        self.starting_su_beam_number_input.Text = str(starting_su_beam_number)
-        self.starting_xvi_beam_number_input.Text = str(starting_xvi_beam_number)
-        self.rename_iso_input.IsChecked = rename_iso
+        self.starting_tx_beam_number_input.Text = str(starting_tx_beam_number)  # type: ignore
+        self.starting_su_beam_number_input.Text = str(starting_su_beam_number)  # type: ignore
+        self.starting_xvi_beam_number_input.Text = str(starting_xvi_beam_number)  # type: ignore
+        self.rename_iso_input.IsChecked = rename_iso  # type: ignore
 
         # Set window as topmost window.
         self.Topmost = True
@@ -525,10 +534,10 @@ class FieldNamerGUI(RayWindow):  # type: ignore
 
     def SubmitClicked(self, sender, event):
         try:
-            self.starting_tx_beam_number = int(self.starting_tx_beam_number_input.Text)
-            self.starting_su_beam_number = int(self.starting_su_beam_number_input.Text)
-            self.starting_xvi_beam_number = int(self.starting_xvi_beam_number_input.Text)
-            self.rename_iso = self.rename_iso_input.IsChecked
+            self.starting_tx_beam_number = int(self.starting_tx_beam_number_input.Text)  # type: ignore
+            self.starting_su_beam_number = int(self.starting_su_beam_number_input.Text)  # type: ignore
+            self.starting_xvi_beam_number = int(self.starting_xvi_beam_number_input.Text)  # type: ignore
+            self.rename_iso = self.rename_iso_input.IsChecked  # type: ignore
         except Exception as error:
             logging.exception(error)
             error_message = f"Invalid input for one of the starting beam numbers."
@@ -570,7 +579,7 @@ def main_field_namer():
     field_namer_gui = FieldNamerGUI(
         starting_tx_beam_number, starting_su_beam_number, starting_xvi_beam_number, rename_iso
     )
-    field_namer_gui.ShowDialog()
+    field_namer_gui.ShowDialog()  # type: ignore
 
     # Get the starting numbers from the GUI
     if field_namer_gui.DialogResult:
@@ -592,8 +601,9 @@ def main_field_namer():
     """
 
     ### Treatment beams
+    tx_beams = []
     try:
-        tx_beams = beam_set.Beams
+        tx_beams = list(beam_set.Beams)  # type: ignore
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get beams for beam set {beam_set.DicomPlanLabel}."
@@ -605,8 +615,9 @@ def main_field_namer():
     beam_set_wrapper.rename_my_beams(tx_beams, new_tx_beam_names_descriptions)
 
     ### Setup beams
+    setup_beams = []
     try:
-        setup_beams = beam_set.PatientSetup.SetupBeams
+        setup_beams = list(beam_set.PatientSetup.SetupBeams)  # type: ignore
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get setup beams for beam set {beam_set.DicomPlanLabel}."
