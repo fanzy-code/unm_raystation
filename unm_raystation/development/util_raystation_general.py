@@ -76,6 +76,12 @@ class ErrorWindow(RayWindow):
 
         self.LoadComponent(xaml)
 
+        # Set window as topmost window.
+        self.Topmost = False
+
+        # Start up window at the center of the screen. WindowStartUpLocation comes from RayStation System Package
+        self.WindowStartupLocation = WindowStartupLocation.CenterScreen  # type: ignore
+
         self.error_message.Text = html.escape(error_message)  # type: ignore
         self.traceback_message.Text = str(rs_exception_error)  # type: ignore
 

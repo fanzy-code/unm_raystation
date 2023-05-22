@@ -7,6 +7,7 @@ Supported beam properties:
     - Gantry position or source position
     - Couch position
     - BeamSet name
+
 Rename isocenters to beam set name, supports multiple isocenters
     Last setup field is always named as XVI
 
@@ -18,6 +19,9 @@ Validates user input
 Handles beam name and beam description duplicates
 Handles isocenter name duplicates
 
+
+TODO:
+    - Beam descriptions can be empty, this can be a better placeholder to handle duplicates
 
 """
 
@@ -121,6 +125,10 @@ class BeamSetWrapper:
     def __init__(self, plan, beam_set):
         self._BeamSet = beam_set
         self._Plan = plan
+
+        self.isocenter_name_format: str = (
+            "{plan_name}_{index}"  # Usable variables: plan_name, index
+        )
 
     def __getattr__(self, name):
         return getattr(self._BeamSet, name)
@@ -301,7 +309,9 @@ class BeamSetWrapper:
         new_name_map = []
         for index, isocenter in enumerate(unique_current_isocenters):
             name_index = index + 1
-            new_name = f"{self._BeamSet.DicomPlanLabel}_{name_index}"
+            new_name = self.isocenter_name_format.format(
+                plan_name=self._BeamSet.DicomPlanLabel, index=str(index + 1)
+            )
             new_name_map.append(new_name)
         return new_name_map
 
@@ -523,7 +533,7 @@ class FieldNamerGUI(RayWindow):  # type: ignore
         self.rename_iso_input.IsChecked = rename_iso  # type: ignore
 
         # Set window as topmost window.
-        self.Topmost = True
+        self.Topmost = False
 
         # Start up window at the center of the screen. WindowStartUpLocation comes from RayStation System Package
         self.WindowStartupLocation = WindowStartupLocation.CenterScreen  # type: ignore
@@ -538,12 +548,12 @@ class FieldNamerGUI(RayWindow):  # type: ignore
             self.starting_su_beam_number = int(self.starting_su_beam_number_input.Text)  # type: ignore
             self.starting_xvi_beam_number = int(self.starting_xvi_beam_number_input.Text)  # type: ignore
             self.rename_iso = self.rename_iso_input.IsChecked  # type: ignore
+            self.DialogResult = True
         except Exception as error:
             logging.exception(error)
-            error_message = f"Invalid input for one of the starting beam numbers."
+            error_message = f"Invalid input, please check the input fields."
             raise_error(error_message=error_message, rs_exception_error=error, terminate=False)
-
-        self.DialogResult = True
+        return
 
 
 def main_field_namer():

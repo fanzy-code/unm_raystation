@@ -75,7 +75,7 @@ def patient_wrapper(mock_patient):
 
 def test_get_all_beam_names(patient_wrapper):
     """Tests PatientWrapper initialization, and get_all_beam_names method by passing Mock objects into BeamSetWrapper
-    and then using its get_beam_names and get_setu_beam_names methods."""
+    and then using its get_beam_names and get_setup_beam_names methods."""
 
     # Test get_all_beam_names for treatment beams only
     assert patient_wrapper.get_all_beam_names("Treatment") == ["A03", "A04"]
