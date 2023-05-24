@@ -1,41 +1,45 @@
 """
-    field_namer script to rename treatment beams and setup beams to UNM naming convention
+field_namer script to rename treatment beams and setup beams to UNM naming convention
 
-    Supported beam properties:
-        - Arc or Static
-        - Bolus
-        - Gantry position or source position
-        - Couch position
-        - BeamSet name
-    Rename isocenters to beam set name, supports multiple isocenters
+Supported beam properties:
+    - Arc or Static
+    - Bolus
+    - Gantry position or source position
+    - Couch position
+    - BeamSet name
+
+Rename isocenters to beam set name, supports multiple isocenters
     Last setup field is always named as XVI
 
-    Features:
+Features:
 
-    Makes best guess for field numbering based on the existing fields in the treatment planning system
-    Prompts user with GUI to verify starting number inputs
-    Validates user input
-    Handles beam name and beam description duplicates
-    Handles isocenter name duplicates
+Makes best guess for field numbering based on the existing fields in the treatment planning system
+Prompts user with GUI to verify starting number inputs
+Validates user input
+Handles beam name and beam description duplicates
+Handles isocenter name duplicates
 
+
+TODO:
+    - Beam descriptions can be empty, this can be a better placeholder to handle duplicates
 
 """
 
 __author__ = "Michael Fan"
 __contact__ = "mfan1@unmmg.org"
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 __license__ = "MIT"
 
 
-# Code block for importing RayStation System modules
-
 import logging
 import re
+from typing import Literal
 
-import rs_utils_new
+from util_raystation_general import get_current_helper, raise_error
 
-import System  # type: ignore
-from connect import *  # type: ignore
+import System
+from connect import *
+from connect import PyScriptObject
 from System.Windows import *  # type: ignore
 from System.Windows.Controls import *  # type: ignore
 
@@ -45,47 +49,55 @@ class PatientWrapper:
 
     # Initialize with patient and beam_set object
     # Workaround provided by Yibing Wang on Raystation community scripting forums
-    def __init__(self, patient, beam_set):
-        self._Patient = patient
-        self._BeamSet = beam_set
+    def __init__(self, patient: PyScriptObject, beam_set: PyScriptObject):
+        self._Patient: PyScriptObject = patient
+        self._BeamSet: PyScriptObject = beam_set
 
-    def get_all_beam_names(self, beam_type):
-        # Function to get all beam names of the patient for beam_type = 'Treatment' or 'Setup'
-        # Ignores current beam set
+        self.regex_string_for_tx_beam_name = "(?<=A)?\\d+(?=(?:B|$))"
+        self.regex_string_for_su_beam_name = "(?<=SU)\\d+"
+        self.regex_string_for_xvi_beam_name = "(?<=XVI)\\d+"
 
-        # Get all cases
-        cases = [case for case in self._Patient.Cases]
+    def get_all_beam_names(self, beam_type: Literal["Treatment", "Setup"]) -> list:
+        """
+        Function to get all beam names (excluding current beam set) of the patient for beam_type = 'Treatment' or 'Setup'
 
-        # Initialize a list
+        :param beam_type: type of beam, either 'Treatment' or 'Setup'
+        :return: list of all beam names for the specified beam type
+        """
+
         beam_names = []
+        cases = []
 
-        # Nested for loop through all cases, plans, and beam_sets
+        try:
+            cases = list(self._Patient.Cases)  # type: ignore
+        except Exception as error:
+            logging.exception(error)
+            error_message = f"Could not get cases for current patient."
+            raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
+
         for case in cases:
             for plan in case.TreatmentPlans:
                 for beam_set in plan.BeamSets:
-                    # Exclude current beam_set
                     if beam_set.UniqueId == self._BeamSet.UniqueId:
                         continue
-
-                    # Wrap the current plan and beam set to get wrapper functions
                     beam_set_wrapper = BeamSetWrapper(plan, beam_set)
-
-                    # Append TX beam names
                     if beam_type == "Treatment":
-                        beam_names.append(beam_set_wrapper.get_beam_names())
-
-                    # Append patient setup beams
-                    if beam_type == "Setup":
-                        beam_names.append(beam_set_wrapper.get_setup_beam_names())
-
-        # Flattens the list
-        # See https://stackoverflow.com/questions/952914/how-do-i-make-a-flat-list-out-of-a-list-of-lists
-        beam_names = [item for sublist in beam_names for item in sublist]
+                        beam_names += beam_set_wrapper.get_beam_names()
+                    elif beam_type == "Setup":
+                        beam_names += beam_set_wrapper.get_setup_beam_names()
 
         return beam_names
 
-    def guess_starting_beam_number(self, re_match_string, previous_beam_list):
+    def guess_starting_beam_number(
+        self, beam_type: Literal["Treatment", "Setup", "XVI"], previous_beam_list
+    ):
         # Use regular expression to determine best guess of previous_beam_list
+        if beam_type == "Treatment":
+            re_match_string = self.regex_string_for_tx_beam_name
+        elif beam_type == "Setup":
+            re_match_string = self.regex_string_for_su_beam_name
+        elif beam_type == "XVI":
+            re_match_string = self.regex_string_for_xvi_beam_name
 
         # Iterate over previous_beam_list and find matches to regular expression string
         match_list = []
@@ -114,6 +126,10 @@ class BeamSetWrapper:
         self._BeamSet = beam_set
         self._Plan = plan
 
+        self.isocenter_name_format: str = (
+            "{plan_name}_{index}"  # Usable variables: plan_name, index
+        )
+
     def __getattr__(self, name):
         return getattr(self._BeamSet, name)
 
@@ -128,7 +144,7 @@ class BeamSetWrapper:
         )
         return
 
-    def get_beam_names(self):
+    def get_beam_names(self) -> list:
         # Returns a list of current beam_names
         return [beam.Name for beam in self._BeamSet.Beams]
 
@@ -136,7 +152,7 @@ class BeamSetWrapper:
         # Returns a list of current beam descriptions
         return [beam.Description for beam in self._BeamSet.Beams]
 
-    def get_setup_beam_names(self):
+    def get_setup_beam_names(self) -> list:
         # Returns a list of current setup_beam_names
         return [setup_beam.Name for setup_beam in self._BeamSet.PatientSetup.SetupBeams]
 
@@ -293,7 +309,9 @@ class BeamSetWrapper:
         new_name_map = []
         for index, isocenter in enumerate(unique_current_isocenters):
             name_index = index + 1
-            new_name = f"{self._BeamSet.DicomPlanLabel}_{name_index}"
+            new_name = self.isocenter_name_format.format(
+                plan_name=self._BeamSet.DicomPlanLabel, index=str(index + 1)
+            )
             new_name_map.append(new_name)
         return new_name_map
 
@@ -340,7 +358,7 @@ class BeamSetWrapper:
             error_message = (
                 f"Cannot set isocenter {isocenter.Annotation.Name} to new name: {new_name}."
             )
-            rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+            raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
         return
 
 
@@ -441,10 +459,10 @@ class BeamWrapper:
         if not self._Beam.Name == beam_name_string:
             try:
                 self._Beam.Name = beam_name_string
-            except System.InvalidOperationException as error:
+            except System.InvalidOperationException as error:  # type: ignore
                 logging.exception(error)
                 error_message = f"Cannot set beam name {self._Beam.Name} to {beam_name_string}."
-                rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+                raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
         if not self._Beam.Description == beam_description_string:
             try:
@@ -452,7 +470,7 @@ class BeamWrapper:
             except Exception as error:
                 logging.exception(error)
                 error_message = f"Cannot set beam description {self._Beam.Description} to {beam_description_string}."
-                rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+                raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
         return
 
@@ -509,13 +527,13 @@ class FieldNamerGUI(RayWindow):  # type: ignore
     ):
         """Initialize the GUI window with starting numbers"""
         self.LoadComponent(self.field_namer_xaml)
-        self.starting_tx_beam_number_input.Text = str(starting_tx_beam_number)
-        self.starting_su_beam_number_input.Text = str(starting_su_beam_number)
-        self.starting_xvi_beam_number_input.Text = str(starting_xvi_beam_number)
-        self.rename_iso_input.IsChecked = rename_iso
+        self.starting_tx_beam_number_input.Text = str(starting_tx_beam_number)  # type: ignore
+        self.starting_su_beam_number_input.Text = str(starting_su_beam_number)  # type: ignore
+        self.starting_xvi_beam_number_input.Text = str(starting_xvi_beam_number)  # type: ignore
+        self.rename_iso_input.IsChecked = rename_iso  # type: ignore
 
         # Set window as topmost window.
-        self.Topmost = True
+        self.Topmost = False
 
         # Start up window at the center of the screen. WindowStartUpLocation comes from RayStation System Package
         self.WindowStartupLocation = WindowStartupLocation.CenterScreen  # type: ignore
@@ -526,22 +544,22 @@ class FieldNamerGUI(RayWindow):  # type: ignore
 
     def SubmitClicked(self, sender, event):
         try:
-            self.starting_tx_beam_number = int(self.starting_tx_beam_number_input.Text)
-            self.starting_su_beam_number = int(self.starting_su_beam_number_input.Text)
-            self.starting_xvi_beam_number = int(self.starting_xvi_beam_number_input.Text)
-            self.rename_iso = self.rename_iso_input.IsChecked
+            self.starting_tx_beam_number = int(self.starting_tx_beam_number_input.Text)  # type: ignore
+            self.starting_su_beam_number = int(self.starting_su_beam_number_input.Text)  # type: ignore
+            self.starting_xvi_beam_number = int(self.starting_xvi_beam_number_input.Text)  # type: ignore
+            self.rename_iso = self.rename_iso_input.IsChecked  # type: ignore
+            self.DialogResult = True
         except Exception as error:
             logging.exception(error)
-            error_message = f"Invalid input for one of the starting beam numbers."
-            rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+            error_message = f"Invalid input, please check the input fields."
+            raise_error(error_message=error_message, rs_exception_error=error, terminate=False)
+        return
 
-        self.DialogResult = True
 
-
-def main():
-    patient = rs_utils.get_current_helper("Patient")
-    plan = rs_utils.get_current_helper("Plan")
-    beam_set = rs_utils.get_current_helper("BeamSet")
+def main_field_namer():
+    patient = get_current_helper("Patient")
+    plan = get_current_helper("Plan")
+    beam_set = get_current_helper("BeamSet")
 
     # Wrap classes to include additional methods
     beam_set_wrapper = BeamSetWrapper(plan=plan, beam_set=beam_set)
@@ -556,13 +574,13 @@ def main():
     ]
 
     starting_tx_beam_number = patient_wrapper.guess_starting_beam_number(
-        "(?<=A)?\d+(?=(?:B|$))", previous_tx_beam_names
+        "Treatment", previous_tx_beam_names
     )
     starting_su_beam_number = patient_wrapper.guess_starting_beam_number(
-        "(?<=SU)\d+", previous_su_beam_names
+        "Setup", previous_su_beam_names
     )
     starting_xvi_beam_number = patient_wrapper.guess_starting_beam_number(
-        "(?<=XVI)\d+", previous_su_beam_names
+        "XVI", previous_su_beam_names
     )
 
     # Rename isocenter default option
@@ -571,7 +589,7 @@ def main():
     field_namer_gui = FieldNamerGUI(
         starting_tx_beam_number, starting_su_beam_number, starting_xvi_beam_number, rename_iso
     )
-    field_namer_gui.ShowDialog()
+    field_namer_gui.ShowDialog()  # type: ignore
 
     # Get the starting numbers from the GUI
     if field_namer_gui.DialogResult:
@@ -593,12 +611,13 @@ def main():
     """
 
     ### Treatment beams
+    tx_beams = []
     try:
-        tx_beams = beam_set.Beams
+        tx_beams = list(beam_set.Beams)  # type: ignore
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get beams for beam set {beam_set.DicomPlanLabel}."
-        rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
     new_tx_beam_names_descriptions = beam_set_wrapper.get_new_beam_names_descriptions(
         tx_beams, starting_tx_beam_number
@@ -606,12 +625,13 @@ def main():
     beam_set_wrapper.rename_my_beams(tx_beams, new_tx_beam_names_descriptions)
 
     ### Setup beams
+    setup_beams = []
     try:
-        setup_beams = beam_set.PatientSetup.SetupBeams
+        setup_beams = list(beam_set.PatientSetup.SetupBeams)  # type: ignore
     except Exception as error:
         logging.exception(error)
         error_message = f"Could not get setup beams for beam set {beam_set.DicomPlanLabel}."
-        rs_utils.raise_error(error_message=error_message, rs_exception_error=error)
+        raise_error(error_message=error_message, rs_exception_error=error, terminate=True)
 
     # find last_index to ignore the renaming the last setup beam
     last_index = len(setup_beams) - 1
@@ -649,4 +669,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main_field_namer()

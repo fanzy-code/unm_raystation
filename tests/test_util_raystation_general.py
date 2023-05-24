@@ -1,5 +1,8 @@
 """
-pytest for rs_utils 
+pytest for util_raystation_general.py
+
+TODO:
+Create mock versions of the functions for other tests, right now the "nested" tests cannot be performed properly
 """
 
 __author__ = "Michael Fan"
@@ -13,7 +16,7 @@ import logging
 import pydicom as dicom
 import pytest
 
-from unm_raystation.development.util_raystation_general import (
+from unm_raystation.release.util_raystation_general import (
     get_current_helper,
     raise_error,
     slugify,

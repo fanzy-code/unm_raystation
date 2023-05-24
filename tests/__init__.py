@@ -33,3 +33,4 @@ clr.AddReference("System")  # System = System.dll
 clr.AddReference(
     "System.Windows"
 )  # System.Windows = PresentationCore.dll, PresentationFramework.dll
+# clr.AddReference("PresentationFramework")

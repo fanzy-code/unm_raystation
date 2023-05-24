@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from definitions import ROOT_DIR
-from unm_raystation.development.util_raystation_networking import *
+from unm_raystation.release.util_raystation_networking import *
 
 
 def test_DicomSCP_with_Title_only_not_allowed():

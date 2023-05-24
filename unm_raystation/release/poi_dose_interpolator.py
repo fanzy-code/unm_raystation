@@ -1,11 +1,11 @@
 """ 
-    Installation:
-    Prints per beam dose to each POI for every beam set.  
+Installation:
+Prints per beam dose to each POI for every beam set.  
 
-    To run, copy and paste the code into console
+To run, copy and paste the code into console
 
-    To do:
-        - Create a GUI
+TODO:
+- Create a GUI
 """
 
 __author__ = "Michael Fan"

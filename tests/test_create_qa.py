@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from unm_raystation.development.create_qa_new import *
+from unm_raystation.release.create_qa import *
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def mock_get_current_helper():
 
 def test_create_qa_instantiate(mock_get_current_helper, monkeypatch):
     monkeypatch.setattr(
-        "unm_raystation.development.create_qa_new.get_current_helper",
+        "unm_raystation.release.create_qa.get_current_helper",
         mock_get_current_helper,
     )
     export_patient_instance = CreatePatientQA()

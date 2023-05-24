@@ -1,12 +1,12 @@
 """ 
-Prints per beam dose to each POI active beam set.
+    Prints per beam dose to each POI active beam set.
 
-There are two sets of code, one for plans in treatment planning and another for verification plans  
+    There are two sets of code, one for plans in treatment planning and another for verification plans  
 
-To run, copy and paste the code into console
+    To run, copy and paste the code into console
 
-TODO:
-- Create a GUI
+    To do:
+        - Create a GUI
 """
 
 __author__ = "Michael Fan"
@@ -25,7 +25,6 @@ structure_set.RoiGeometries[roi_name]
 for beam_dose in beam_set.FractionDose.BeamDoses:
     average = beam_dose.GetDoseStatistic(RoiName=roi_name, DoseType=dose_type)
     result[beam_dose.ForBeam.Name] = average
-
 # Results are unformatted, sorry
 print(result)
 

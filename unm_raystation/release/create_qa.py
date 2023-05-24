@@ -1,70 +1,90 @@
-from connect import *
+"""
+Create a new QA plan for the current beamset
 
-# Load patient and case data
-try:
-    patient = get_current("Patient")
-except SystemError:
-    raise IOError("No plan loaded.")
+"""
 
-try:
-    case = get_current("Case")
-except SystemError:
-    raise IOError("No plan loaded.")
+__author__ = "Christopher Hooper, Michael Fan"
+__contact__ = "mfan1@unmmg.org"
+__version__ = "1.0.0"
+__license__ = "MIT"
 
-try:
-    plan = get_current("Plan")
-except SystemError:
-    raise IOError("No plan loaded.")
-# total_dose = plan.TreatmentCourse.TotalDose
 
-try:
-    beam_set = get_current("BeamSet")
-except SystemError:
-    raise IOError("No beam set loaded.")
-# fraction_dose = beam_set.FractionDose
+from typing import Dict, Optional
 
-# Determine unique QA plan name
-name = "QA"
-prefix = "QA"
-name_conflict = False
-if len(list(plan.VerificationPlans)) > 0:
-    for p in plan.VerificationPlans:
-        if p.BeamSet.DicomPlanLabel == name:
-            name_conflict = True
-    if name_conflict:
+from util_raystation_general import get_current_helper, raise_error, save_patient
+
+from connect import PyScriptObject
+
+
+class CreatePatientQA:
+    def __init__(self):
+        # Load patient, case, beamset data
+        self.patient: PyScriptObject = get_current_helper("Patient")
+        self.case: PyScriptObject = get_current_helper("Case")
+        self.plan: PyScriptObject = get_current_helper("Plan")
+        self.beam_set: PyScriptObject = get_current_helper("BeamSet")
+        save_patient(self.patient)
+
+        # QA Plan creation parameters
+        self.phantom_name: str = "SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom"
+        self.phantom_id: str = "SNC_ArcCheck"
+        self.isocenter: Dict[str, float] = {"x": 0, "y": 0.05, "z": 0}
+        self.dose_grid: Dict[str, float] = {  # type: ignore
+            "x": self.beam_set.FractionDose.InDoseGrid.VoxelSize.x,  # type: ignore
+            "y": self.beam_set.FractionDose.InDoseGrid.VoxelSize.y,  # type: ignore
+            "z": self.beam_set.FractionDose.InDoseGrid.VoxelSize.z,  # type: ignore
+        }
+        self.GantryAngle: Optional[float] = None
+        self.CollimatorAngle: Optional[float] = None
+        self.CouchRotationAngle: Optional[float] = 0
+        self.ComputeDose: bool = True
+
+    def get_QA_plan_name(self) -> str:
+        beam_set_name = self.beam_set.DicomPlanLabel
+        prefix = f"{beam_set_name}_QA"
         i = 0
         while True:
             i += 1
-            name = prefix + "" + str(i)
-            available = True
-            for p in plan.VerificationPlans:
-                if p.BeamSet.DicomPlanLabel == name:
-                    available = False
-            if available:
-                break
+            name = prefix + "_" + str(i)
+            name_conflict = any(
+                p.BeamSet.DicomPlanLabel == name for p in self.plan.VerificationPlans  # type: ignore
+            )
+            if not name_conflict:
+                return name
 
-# Dose Grid
-# resolution = beam_set.FractionDose.InDoseGrid.VoxelSize
+    def create_qa_plan(self) -> PyScriptObject:
+        name = self.get_QA_plan_name()
+        self.beam_set.CreateQAPlan(
+            PhantomName=self.phantom_name,
+            PhantomId=self.phantom_id,
+            QAPlanName=name,
+            IsoCenter=self.isocenter,
+            DoseGrid=self.dose_grid,
+            GantryAngle=self.GantryAngle,
+            CollimatorAngle=self.CollimatorAngle,
+            CouchRotationAngle=self.CouchRotationAngle,
+            ComputeDoseWhenPlanIsCreated=self.ComputeDose,
+        )  # type: ignore
 
-xsize = beam_set.FractionDose.InDoseGrid.VoxelSize.x
-ysize = beam_set.FractionDose.InDoseGrid.VoxelSize.y
-zsize = beam_set.FractionDose.InDoseGrid.VoxelSize.z
+        save_patient(self.patient)
+        num_verification_plans = len(self.plan.VerificationPlans)  # type: ignore
+        last_plan = self.plan.VerificationPlans[  # type: ignore
+            num_verification_plans - 1
+        ]  # self.plan.VerificationPlans[-1] does not work because it has to call RayStation API
+
+        try:
+            last_plan: PyScriptObject = self.plan.VerificationPlans[  # type: ignore
+                num_verification_plans - 1
+            ]  # self.plan.VerificationPlans[-1] does not work because it has to call RayStation API
+            return last_plan
+        except AttributeError as rs_exception_error:
+            error_message = "Unable to get last QA plan."
+            raise_error(
+                error_message=error_message, rs_exception_error=rs_exception_error, terminate=False
+            )
+            raise Exception(error_message, rs_exception_error)
 
 
-# Create QA Plan:
-
-beam_set.CreateQAPlan(
-    PhantomName="SNC_ArcCheck_Virtual 27cm_2cm_Rods Phantom",
-    PhantomId="SNC_ArcCheck",
-    QAPlanName=name,
-    IsoCenter={"x": 0, "y": 0.05, "z": 0},
-    DoseGrid={"x": xsize, "y": ysize, "z": zsize},
-    GantryAngle=None,
-    CollimatorAngle=None,
-    CouchRotationAngle=0,
-    ComputeDoseWhenPlanIsCreated=True,
-)
-
-# Save:
-patient.Save()
-last_plan = len(list(plan.VerificationPlans)) - 1
+if __name__ == "__main__":
+    create_patient_instance = CreatePatientQA()
+    create_patient_instance.create_qa_plan()

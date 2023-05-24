@@ -1,43 +1,48 @@
 """ 
-    Launch Jupyter notebook using a portable web browser executable
+Launch Jupyter notebook using a portable web browser executable
 
-    Install firefox portable @ H://portable_software/Firefox_portable/FireFoxPortable.exe
-    
-    To Do:
-    - Raystation paths for connect and system modules by default*
+Install firefox portable @ H://portable_software/Firefox_portable/FireFoxPortable.exe
+Any other network drive will work, but this is the one I use
 
-    *Current work around:
-    - append 'C:\\Program Files\\RaySearch Laboratories\\RayStation 11B-SP2\\ScriptClient' to sys.path variable prior to using jupyter notebook consoles & scripts
-    Note: this is not necessary for scripts executed in Raystation, they have this path already.  This is only a problem for Jupyter development.
+TODO:
+- Raystation paths for connect and system modules using a startup script*
 
-    Example code block:
+*Current work around:
+- append 'C:\\Program Files\\RaySearch Laboratories\\RayStation 11B-SP2\\ScriptClient' to sys.path variable prior to using jupyter notebook consoles & scripts
 
+Note: this is not necessary for scripts executed in Raystation, they have this path already.  This is only a problem for Jupyter development.
 
-    # Connect to RayStation API
-    import os
-    import sys
-    raystation_pid = os.environ['RAYSTATION_PID']
-    ScriptClient_path = 'C:\\Program Files\\RaySearch Laboratories\\RayStation 11B-SP2\\ScriptClient'
-    sys.path.append(ScriptClient_path)
-    from connect import *
+Example code block to append to scripts being developed in Jupyter:
+ 
+####################################################
+# Connect to RayStation API
+import os
+import sys
+raystation_pid = os.environ['RAYSTATION_PID']
+ScriptClient_path = 'C:\\Program Files\\RaySearch Laboratories\\RayStation 11B-SP2\\ScriptClient'
+sys.path.append(ScriptClient_path)
+from connect import *
 
-    # Import existing scripts from RayStation
-    # Jupyter must be launched from the same virtual environment as where the script is contained
-    # The script must exist in RayStation script management, I have not tested if the validated state matters
-    environment_scripts_path = os.path.join(os.environ['TEMP'], 'RaySearch\RayStation\Scripts', raystation_pid.split('_')[0], raystation_pid)
-    sys.path.append(environment_scripts_path)
-    import rs_utils
+# Import existing scripts from RayStation
+# Jupyter must be launched from the same virtual environment as where the script is contained
+# The script must exist in RayStation script management, I have not tested if the validated state matters
+environment_scripts_path = os.path.join(os.environ['TEMP'], 'RaySearch\\RayStation\\Scripts', raystation_pid.split('_')[0], raystation_pid)
+sys.path.append(environment_scripts_path)
+import rs_utils
 
-    
-    Permanent solution per ChatGPT:
+####################################################
 
-    The extra_startup_script option should be a path to a file containing the startup script you want to run when 
-    Jupyter Notebook starts up. The path can be an absolute or relative file path.
+Permanent solution per ChatGPT:
 
-    cli_argv = [
-    f"--ServerApp.browser={browser_executable}",
-    f"--ServerApp.root_dir='{startup_path}'",
-    f"--NotebookApp.extra_startup_script='{startup_script}'",
+I couldn't get this working though - I think it is hallucinating the feature
+
+The extra_startup_script option should be a path to a file containing the startup script you want to run when 
+Jupyter Notebook starts up. The path can be an absolute or relative file path.
+
+cli_argv = [
+f"--ServerApp.browser={browser_executable}",
+f"--ServerApp.root_dir='{startup_path}'",
+f"--NotebookApp.extra_startup_script='{startup_script}'",
 ]
 
 """

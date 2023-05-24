@@ -2,8 +2,8 @@
 Create and export ArcCheck QA for the last verification plan.
 """
 
-from create_qa_new import CreatePatientQA
-from export_qa_dicom_new import ExportPatientQA
+from create_qa import CreatePatientQA
+from export_qa_dicom import ExportPatientQA
 
 if __name__ == "__main__":
     create_patient_instance = CreatePatientQA()

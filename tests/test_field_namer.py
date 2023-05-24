@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from unm_raystation.development.field_namer_new import *
+from unm_raystation.release.field_namer import *
 
 
 @pytest.fixture
@@ -85,3 +85,7 @@ def test_get_all_beam_names(patient_wrapper):
         "SU03",
         "XVI01",
     ]
+
+
+# Need more tests for BeamSetWrapper
+# Unclear on how FieldNamerGUI can be tested
