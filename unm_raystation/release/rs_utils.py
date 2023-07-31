@@ -419,10 +419,14 @@ class DicomNamer:
         # Extract Beam Sequence information
         beam_sequence_dict = {}
         for beam_sequence in dcm.BeamSequence:
-            beam_sequence_dict[beam_sequence.BeamNumber] = {
-                "beam_number": beam_sequence.BeamNumber,
-                "beam_name": beam_sequence.BeamName,
-                "beam_description": beam_sequence.BeamDescription,
+            beam_number = getattr(beam_sequence, "BeamNumber", "")
+            beam_name = getattr(beam_sequence, "BeamName", "")
+            beam_description = getattr(beam_sequence, "BeamDescription", "")
+
+            beam_sequence_dict[beam_number] = {
+                "beam_number": beam_number,
+                "beam_name": beam_name,
+                "beam_description": beam_description,
             }
 
         return {"plan_name": plan_name, "beam_sequence": beam_sequence_dict}
