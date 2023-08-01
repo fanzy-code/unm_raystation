@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "unm_raystation"}]
 
 [tool.poetry.dependencies]
-python = "^3.8.7"
+python = "3.8.7"
 
 
 [tool.poetry.group.production.dependencies]
@@ -93,7 +93,7 @@ webencodings = "0.5.1"
 websocket-client = "1.4.2"
 zipp = "3.10.0"
 numpy = "1.19.5"
-pythonnet = "2.5.1"
+pythonnet = {version="2.5.1", platform = "win32"}
 pywin32 = {version="300", platform = "win32"}
 pywinpty = {version="2.0.9", platform = "win32"}
 setuptools = "49.2.1"
